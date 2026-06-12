@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="qrisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B00"/>
+      <stop offset="50%" style="stop-color:#E74C3C"/>
+      <stop offset="100%" style="stop-color:#9B59B6"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="20" fill="url(#qrisGrad)"/>
+  <g fill="white" transform="translate(30, 30)">
+    <rect x="0" y="0" width="50" height="50" rx="5"/>
+    <rect x="90" y="0" width="50" height="50" rx="5"/>
+    <rect x="0" y="90" width="50" height="50" rx="5"/>
+    <rect x="15" y="15" width="20" height="20" rx="3" fill="url(#qrisGrad)"/>
+    <rect x="105" y="15" width="20" height="20" rx="3" fill="url(#qrisGrad)"/>
+    <rect x="15" y="105" width="20" height="20" rx="3" fill="url(#qrisGrad)"/>
+    <rect x="22" y="22" width="6" height="6" rx="1" fill="white"/>
+    <rect x="112" y="22" width="6" height="6" rx="1" fill="white"/>
+    <rect x="22" y="112" width="6" height="6" rx="1" fill="white"/>
+    <rect x="50" y="0" width="10" height="10" rx="2"/>
+    <rect x="70" y="0" width="10" height="10" rx="2"/>
+    <rect x="50" y="20" width="10" height="10" rx="2"/>
+    <rect x="70" y="20" width="10" height="10" rx="2"/>
+    <rect x="60" y="30" width="10" height="10" rx="2"/>
+    <rect x="0" y="50" width="10" height="10" rx="2"/>
+    <rect x="20" y="50" width="10" height="10" rx="2"/>
+    <rect x="0" y="70" width="10" height="10" rx="2"/>
+    <rect x="20" y="70" width="10" height="10" rx="2"/>
+    <rect x="40" y="50" width="10" height="10" rx="2"/>
+    <rect x="50" y="50" width="10" height="10" rx="2"/>
+    <rect x="40" y="70" width="10" height="10" rx="2"/>
+    <rect x="60" y="70" width="10" height="10" rx="2"/>
+    <rect x="70" y="50" width="10" height="10" rx="2"/>
+    <rect x="90" y="50" width="10" height="10" rx="2"/>
+    <rect x="110" y="50" width="10" height="10" rx="2"/>
+    <rect x="90" y="70" width="10" height="10" rx="2"/>
+    <rect x="110" y="70" width="10" height="10" rx="2"/>
+    <rect x="120" y="60" width="10" height="10" rx="2"/>
+    <rect x="120" y="80" width="10" height="10" rx="2"/>
+    <rect x="100" y="90" width="10" height="10" rx="2"/>
+    <rect x="120" y="90" width="10" height="10" rx="2"/>
+    <rect x="50" y="90" width="10" height="10" rx="2"/>
+    <rect x="70" y="90" width="10" height="10" rx="2"/>
+    <rect x="50" y="110" width="10" height="10" rx="2"/>
+    <rect x="70" y="110" width="10" height="10" rx="2"/>
+    <rect x="60" y="120" width="10" height="10" rx="2"/>
+    <rect x="80" y="120" width="10" height="10" rx="2"/>
+    <rect x="90" y="110" width="10" height="10" rx="2"/>
+    <rect x="110" y="110" width="10" height="10" rx="2"/>
+    <rect x="100" y="120" width="10" height="10" rx="2"/>
+    <rect x="120" y="120" width="10" height="10" rx="2"/>
+    <rect x="30" y="100" width="10" height="10" rx="2"/>
+    <rect x="10" y="120" width="10" height="10" rx="2"/>
+    <rect x="30" y="120" width="10" height="10" rx="2"/>
+    <rect x="50" y="130" width="10" height="10" rx="2"/>
+    <rect x="70" y="130" width="10" height="10" rx="2"/>
+    <rect x="90" y="130" width="10" height="10" rx="2"/>
+    <rect x="110" y="130" width="10" height="10" rx="2"/>
+    <rect x="40" y="100" width="10" height="10" rx="2"/>
+    <rect x="60" y="100" width="10" height="10" rx="2"/>
+    <rect x="80" y="100" width="10" height="10" rx="2"/>
+    <rect x="100" y="100" width="10" height="10" rx="2"/>
+    <rect x="120" y="100" width="10" height="10" rx="2"/>
+    <rect x="30" y="40" width="10" height="10" rx="2"/>
+    <rect x="50" y="40" width="10" height="10" rx="2"/>
+    <rect x="70" y="40" width="10" height="10" rx="2"/>
+    <rect x="90" y="40" width="10" height="10" rx="2"/>
+    <rect x="110" y="40" width="10" height="10" rx="2"/>
+  </g>
+</svg>

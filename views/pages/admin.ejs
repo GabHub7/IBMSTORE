@@ -1,0 +1,1456 @@
+<%
+const categoryLabels = Object.assign({
+  freefire: 'Free Fire',
+  mlbb: 'Mobile Legends',
+  pubg: 'PUBG'
+}, settings.categoryLabels || {});
+const formatPriceShort = (value) => `Rp ${(Number(value || 0) / 1000).toFixed(0)}K`;
+const buildPricingRows = (product) => {
+  const source = Array.isArray(product?.pricingOptions) && product.pricingOptions.length > 0
+    ? product.pricingOptions.map((option) => ({ days: option.days, price: option.price }))
+    : [
+        { days: 1, price: product?.price1day || 0 },
+        { days: 3, price: product?.price3day || 0 },
+        { days: 7, price: product?.price7day || 0 }
+      ];
+  return source;
+};
+const newProductPricingRows = [
+  { days: 1, price: 15000 },
+  { days: 3, price: 30000 },
+  { days: 7, price: 60000 }
+];
+%>
+<div class="admin-page">
+<h1 class="admin-title">Admin Dashboard</h1>
+<% if (typeof error !== 'undefined' && error) { %>
+<div class="alert-error"><%= error %></div>
+<% } %>
+
+<div class="admin-stats">
+<div class="stat-card">
+<p class="stat-value"><%= products.length %></p>
+<p class="stat-label">Total Produk</p>
+</div>
+<div class="stat-card">
+<p class="stat-value" style="color: #22c55e;"><%= users.length %></p>
+<p class="stat-label">Total User</p>
+</div>
+<div class="stat-card">
+<p class="stat-value" style="color: #f59e0b;"><%= transactions.length %></p>
+<p class="stat-label">Total Transaksi</p>
+</div>
+<div class="stat-card">
+<p class="stat-value" style="color: #a855f7;">Rp <%= (transactions.filter((t) => t.status === 'completed' || t.status === 'success').reduce((sum, t) => sum + t.price, 0) / 1000).toFixed(0) %>K</p>
+<p class="stat-label">Revenue</p>
+</div>
+</div>
+
+<div class="tab-nav" id="tabNav">
+<button class="tab-btn active" data-tab="products" onclick="switchTab('products')">Produk</button>
+<button class="tab-btn" data-tab="transactions" onclick="switchTab('transactions')">Transaksi</button>
+<button class="tab-btn" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
+<button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+<button class="tab-btn" data-tab="vouchers" onclick="switchTab('vouchers')">Voucher</button>
+<button class="tab-btn" data-tab="banners" onclick="switchTab('banners')">Banner</button>
+<button class="tab-btn" data-tab="categories" onclick="switchTab('categories')">Kategori</button>
+<button class="tab-btn" data-tab="users" onclick="switchTab('users')">User</button>
+<button class="tab-btn" data-tab="maintenance" onclick="switchTab('maintenance')">Maintenance</button>
+</div>
+
+<div id="tab-products" class="tab-content active">
+<div class="admin-toolbar">
+<button class="btn btn-primary" onclick="toggleForm('addProduct')">+ Tambah Produk</button>
+</div>
+
+<div id="addProductForm" class="edit-form">
+<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tambah Produk Baru</h3>
+<form action="/admin/products" method="POST" enctype="multipart/form-data">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Nama Produk</label>
+<input type="text" name="name" required placeholder="Contoh: Drip Client Non Root">
+</div>
+<div class="input-group">
+<label>Kategori</label>
+<select name="category" id="newProductCategory" required onchange="toggleNewCategoryInput()">
+<% const defaultCats = ['freefire', 'mlbb', 'pubg']; %>
+<% defaultCats.forEach((cat) => { %>
+<option value="<%= cat %>"><%= categoryLabels[cat] || cat %></option>
+<% }); %>
+<% (settings.categories || []).forEach((cat) => { %>
+<option value="<%= cat %>"><%= (settings.categoryLabels || {})[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)) %></option>
+<% }); %>
+<option value="__new__">+ Tambah Kategori Baru</option>
+</select>
+<input type="text" id="newCategoryInput" name="newCategory" placeholder="Nama kategori baru (slug)" style="display:none; margin-top:8px;">
+</div>
+<div class="input-group">
+<label>Status</label>
+<select name="status">
+<option value="active">Active</option>
+<option value="inactive">Inactive</option>
+</select>
+</div>
+</div>
+<div class="input-group">
+<label>Image Produk</label>
+<input type="file" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+<p class="admin-form-note">Format: JPEG, PNG, GIF, WebP. Maksimal 5MB.</p>
+</div>
+<div class="pricing-keys-layout">
+<div class="input-group" style="margin-bottom:0;">
+<label>Tabel Durasi & Harga</label>
+<div class="pricing-editor">
+<div class="pricing-editor-head">
+<span>Days</span>
+<span>Price</span>
+<span></span>
+</div>
+<div id="newPricingRows">
+<% newProductPricingRows.forEach((row, idx) => { %>
+<div class="pricing-editor-row" data-row-id="<%= idx %>">
+<input type="number" name="pricingDays" min="1" value="<%= row.days %>" placeholder="1">
+<input type="number" name="pricingPrices" min="0" value="<%= row.price %>" placeholder="15000">
+<button type="button" class="btn-remove-row" onclick="removePricingRow(this)">×</button>
+</div>
+<% }); %>
+</div>
+<button type="button" class="btn btn-sm btn-secondary" onclick="addPricingRow()" style="margin-top:8px;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Baris
+</button>
+</div>
+<div class="input-group" style="margin-bottom:0;">
+<label>Keys</label>
+<textarea name="keys" placeholder="KEY-001&#10;KEY-002&#10;KEY-003" style="font-family: monospace; min-height: 178px; resize: vertical;"></textarea>
+</div>
+</div>
+<div class="input-group">
+<label>Deskripsi</label>
+<textarea name="description" placeholder="Deskripsi produk..."></textarea>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan</button>
+<button type="button" class="btn btn-secondary" onclick="toggleForm('addProduct')">Batal</button>
+</div>
+</form>
+</div>
+
+<div class="admin-table-wrapper desktop-only">
+<table class="admin-table admin-product-table">
+<thead>
+<tr>
+<th>Produk</th>
+<th>Kategori</th>
+<th>Durasi, Harga & Keys</th>
+<th>Status</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<% products.forEach((p) => { const editRows = buildPricingRows(p); %>
+<tr>
+<td>
+<div class="admin-product-head">
+<img src="<%= p.image %>" alt="<%= p.name %>" class="admin-product-thumb" onerror="this.src='/images/placeholder.jpg'">
+<div>
+<p class="admin-product-name"><%= p.name %></p>
+<p class="admin-product-desc"><%= p.description.substring(0, 80) %></p>
+</div>
+</div>
+</td>
+<td><span class="badge badge-active"><%= (categoryLabels[p.category] || p.category).toUpperCase() %></span></td>
+<td>
+<div class="admin-pricing-preview">
+<% p.pricingOptions.forEach((option) => { %>
+<div class="admin-pricing-item">
+<span><%= option.days %> Hari</span>
+<strong><%= formatPriceShort(option.price) %></strong>
+</div>
+<% }); %>
+</div>
+<% if (p.keys && p.keys.length > 0) { %>
+<div class="admin-keys-preview">
+<div class="admin-keys-header">Keys (<%= p.keys.length %>)</div>
+<div class="admin-keys-list"><%= p.keys.join('\n') %></div>
+</div>
+<% } %>
+</td>
+<td><span class="badge <%= p.status === 'active' ? 'badge-active' : 'badge-inactive' %>"><%= p.status %></span></td>
+<td style="text-align:right;">
+<div class="admin-action-row admin-action-row-end">
+<button type="button" onclick="toggleEditForm('edit-desktop-<%= p.id %>')" class="btn btn-sm btn-secondary">Edit</button>
+<form action="/admin/products/<%= p.id %>/toggle" method="POST">
+<button type="submit" class="btn btn-sm <%= p.status === 'active' ? 'btn-secondary' : 'btn-primary' %>"><%= p.status === 'active' ? 'Nonaktif' : 'Aktifkan' %></button>
+</form>
+<form action="/admin/products/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Yakin hapus?')">
+<button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+</form>
+</div>
+</td>
+</tr>
+<tr id="edit-desktop-<%= p.id %>" class="product-edit-panel" data-display="table-row" style="display:none;">
+<td colspan="6" style="padding: 16px; background: rgba(250,204,21,.06);">
+<form action="/admin/products/<%= p.id %>" method="POST" enctype="multipart/form-data">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Nama Produk</label>
+<input type="text" name="name" value="<%= p.name %>" required>
+</div>
+<div class="input-group">
+<label>Kategori</label>
+<select name="category" required>
+<option value="freefire" <%= p.category === 'freefire' ? 'selected' : '' %>>Free Fire</option>
+<option value="mlbb" <%= p.category === 'mlbb' ? 'selected' : '' %>>Mobile Legends</option>
+<option value="pubg" <%= p.category === 'pubg' ? 'selected' : '' %>>PUBG</option>
+<% (settings.categories || []).forEach((cat) => { %>
+<option value="<%= cat %>" <%= p.category === cat ? 'selected' : '' %>><%= (settings.categoryLabels || {})[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)) %></option>
+<% }); %>
+</select>
+</div>
+<div class="input-group">
+<label>Status</label>
+<select name="status">
+<option value="active" <%= p.status === 'active' ? 'selected' : '' %>>Active</option>
+<option value="inactive" <%= p.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+</select>
+</div>
+</div>
+<div class="input-group">
+<label>Image Produk</label>
+<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+<img src="<%= p.image %>" alt="<%= p.name %>" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+<div>
+<input type="file" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+<p class="admin-form-note">Kosongkan jika tidak ingin mengubah image.</p>
+</div>
+</div>
+</div>
+<div class="pricing-keys-layout">
+<div class="input-group" style="margin-bottom:0;">
+<label>Tabel Durasi & Harga</label>
+<div class="pricing-editor">
+<div class="pricing-editor-head">
+<span>Days</span>
+<span>Price</span>
+<span></span>
+</div>
+<div id="editPricingRows-<%= p.id %>-desktop">
+<% editRows.forEach((row) => { %>
+<div class="pricing-editor-row">
+<input type="number" name="pricingDays" min="1" value="<%= row.days %>" placeholder="1">
+<input type="number" name="pricingPrices" min="0" value="<%= row.price %>" placeholder="15000">
+<button type="button" class="btn-remove-row" onclick="removePricingRow(this)">×</button>
+</div>
+<% }); %>
+</div>
+</div>
+<button type="button" class="btn btn-sm btn-secondary" onclick="addPricingRowTo('editPricingRows-<%= p.id %>-desktop')" style="margin-top:8px;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Baris
+</button>
+</div>
+<div class="input-group" style="margin-bottom:0;">
+<label>Keys</label>
+<textarea name="keys" style="font-family: monospace; min-height: 178px; resize: vertical;"><%= p.keys ? p.keys.join('\n') : '' %></textarea>
+</div>
+</div>
+<div class="input-group">
+<label>Deskripsi</label>
+<textarea name="description"><%= p.description %></textarea>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan</button>
+<button type="button" class="btn btn-secondary" onclick="toggleEditForm('edit-desktop-<%= p.id %>')">Batal</button>
+</div>
+</form>
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+</div>
+
+<div class="mobile-only mobile-product-list">
+<% products.forEach((p) => { const editRows = buildPricingRows(p); const stockCount = Array.isArray(p.keys) ? p.keys.length : 0; %>
+<div class="apc-card">
+<div class="apc-top">
+<div class="apc-img-wrap">
+<img src="<%= p.image %>" alt="<%= p.name %>" class="apc-img" onerror="this.src='/images/placeholder.jpg'">
+<span class="apc-stock-pill <%= stockCount === 0 ? 'apc-stock-empty' : '' %>">
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+<%= stockCount %>
+</span>
+</div>
+<div class="apc-meta">
+<div class="apc-name"><%= p.name %></div>
+<div class="apc-badges">
+<span class="apc-cat-badge"><%= (categoryLabels[p.category] || p.category).toUpperCase() %></span>
+<span class="apc-status-badge <%= p.status === 'active' ? 'apc-active' : 'apc-inactive' %>">
+<span class="apc-status-dot"></span><%= p.status === 'active' ? 'Aktif' : 'Nonaktif' %>
+</span>
+</div>
+<% if (p.description) { %><p class="apc-desc"><%= p.description.substring(0, 70) %><%= p.description.length > 70 ? '…' : '' %></p><% } %>
+</div>
+</div>
+<div class="apc-pricing">
+<% p.pricingOptions.forEach((option) => { %>
+<div class="apc-price-row">
+<span class="apc-price-days"><%= option.days %> Hari</span>
+<span class="apc-price-val"><%= formatPriceShort(option.price) %></span>
+</div>
+<% }); %>
+</div>
+<% if (p.keys && p.keys.length > 0) { %>
+<div class="apc-keys-block">
+<div class="apc-keys-head">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+Keys tersimpan: <strong><%= p.keys.length %></strong>
+</div>
+<div class="apc-keys-body"><%= p.keys.join('\n') %></div>
+</div>
+<% } %>
+<div class="apc-actions">
+<button type="button" onclick="toggleEditForm('edit-mobile-<%= p.id %>')" class="apc-btn apc-btn-edit">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+Edit
+</button>
+<form action="/admin/products/<%= p.id %>/toggle" method="POST" style="flex:1">
+<button type="submit" class="apc-btn <%= p.status === 'active' ? 'apc-btn-toggle-off' : 'apc-btn-toggle-on' %>" style="width:100%">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><% if (p.status === 'active') { %><line x1="8" y1="12" x2="16" y2="12"/><% } else { %><polyline points="9 11 12 14 22 4"/><% } %></svg>
+<%= p.status === 'active' ? 'Nonaktif' : 'Aktifkan' %>
+</button>
+</form>
+<form action="/admin/products/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Yakin hapus produk ini?')">
+<button type="submit" class="apc-btn apc-btn-delete">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+</button>
+</form>
+</div>
+<div id="edit-mobile-<%= p.id %>" class="product-edit-panel mobile-edit-panel" data-display="block" style="display:none;">
+<form action="/admin/products/<%= p.id %>" method="POST" enctype="multipart/form-data">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Nama Produk</label>
+<input type="text" name="name" value="<%= p.name %>" required>
+</div>
+<div class="input-group">
+<label>Kategori</label>
+<select name="category" required>
+<option value="freefire" <%= p.category === 'freefire' ? 'selected' : '' %>>Free Fire</option>
+<option value="mlbb" <%= p.category === 'mlbb' ? 'selected' : '' %>>Mobile Legends</option>
+<option value="pubg" <%= p.category === 'pubg' ? 'selected' : '' %>>PUBG</option>
+<% (settings.categories || []).forEach((cat) => { %>
+<option value="<%= cat %>" <%= p.category === cat ? 'selected' : '' %>><%= (settings.categoryLabels || {})[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)) %></option>
+<% }); %>
+</select>
+</div>
+<div class="input-group">
+<label>Status</label>
+<select name="status">
+<option value="active" <%= p.status === 'active' ? 'selected' : '' %>>Active</option>
+<option value="inactive" <%= p.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+</select>
+</div>
+</div>
+<div class="input-group">
+<label>Image Produk</label>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+<img src="<%= p.image %>" alt="<%= p.name %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+<input type="file" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+</div>
+</div>
+<div class="pricing-keys-layout">
+<div class="input-group" style="margin-bottom:0;">
+<label>Tabel Durasi & Harga</label>
+<div class="pricing-editor">
+<div class="pricing-editor-head">
+<span>Days</span>
+<span>Price</span>
+<span></span>
+</div>
+<div id="editPricingRows-<%= p.id %>-mobile">
+<% editRows.forEach((row) => { %>
+<div class="pricing-editor-row">
+<input type="number" name="pricingDays" min="1" value="<%= row.days %>" placeholder="1">
+<input type="number" name="pricingPrices" min="0" value="<%= row.price %>" placeholder="15000">
+<button type="button" class="btn-remove-row" onclick="removePricingRow(this)">×</button>
+</div>
+<% }); %>
+</div>
+</div>
+<button type="button" class="btn btn-sm btn-secondary" onclick="addPricingRowTo('editPricingRows-<%= p.id %>-mobile')" style="margin-top:8px;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Baris
+</button>
+</div>
+<div class="input-group" style="margin-bottom:0;">
+<label>Keys</label>
+<textarea name="keys" style="font-family: monospace; min-height: 178px; resize: vertical;"><%= p.keys ? p.keys.join('\n') : '' %></textarea>
+</div>
+</div>
+<div class="input-group">
+<label>Deskripsi</label>
+<textarea name="description"><%= p.description %></textarea>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan</button>
+<button type="button" class="btn btn-secondary" onclick="toggleEditForm('edit-mobile-<%= p.id %>')">Batal</button>
+</div>
+</form>
+</div>
+</div>
+<% }); %>
+</div>
+</div>
+</div>
+
+<div id="tab-transactions" class="tab-content">
+<div class="admin-toolbar" style="gap:10px;flex-wrap:wrap;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<button class="btn btn-sm btn-secondary tx-filter-btn active" data-status="all" onclick="filterTransactions('all',this)">Semua (<%= transactions.length %>)</button>
+<button class="btn btn-sm btn-secondary tx-filter-btn" data-status="pending" onclick="filterTransactions('pending',this)" style="color:#f59e0b;border-color:rgba(245,158,11,.3);">Pending (<%= transactions.filter(t=>t.status==='pending').length %>)</button>
+<button class="btn btn-sm btn-secondary tx-filter-btn" data-status="completed" onclick="filterTransactions('completed',this)" style="color:#22c55e;border-color:rgba(34,197,94,.3);">Completed (<%= transactions.filter(t=>t.status==='completed' || t.status==='success').length %>)</button>
+<button class="btn btn-sm btn-secondary tx-filter-btn" data-status="cancelled" onclick="filterTransactions('cancelled',this)" style="color:#ef4444;border-color:rgba(239,68,68,.3);">Cancelled (<%= transactions.filter(t=>t.status==='cancelled').length %>)</button>
+<button class="btn btn-sm btn-secondary tx-filter-btn" data-status="expired" onclick="filterTransactions('expired',this)" style="color:#6b7280;border-color:rgba(107,114,128,.3);">Expired (<%= transactions.filter(t=>t.status==='expired').length %>)</button>
+</div>
+</div>
+<div class="admin-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>User</th>
+<th>Produk</th>
+<th>Key</th>
+<th>Pembayaran</th>
+<th>Status</th>
+<th>Total</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody id="transactionsTableBody">
+<% transactions.forEach((t) => { %>
+<tr data-tx-status="<%= t.status %>">
+<td style="font-weight: 600; font-size: 13px;"><%= t.username %></td>
+<td>
+<p style="font-weight: 500; font-size: 13px;"><%= t.productName %></p>
+<p style="color: var(--text-secondary); font-size: 11px;"><%= t.duration %></p>
+</td>
+<td><code style="background: rgba(250,204,21,.06); padding: 4px 8px; border-radius: 4px; font-size: 11px;"><%= t.key %></code></td>
+<td><span class="badge <%= t.paymentMethod === 'qris' ? 'badge-active' : 'badge-inactive' %>"><%= t.paymentMethod === 'qris' ? 'QRIS' : 'Manual' %></span></td>
+<td><span class="badge <%= t.status === 'completed' || t.status === 'success' ? 'badge-completed' : t.status === 'pending' ? 'badge-pending' : 'badge-cancelled' %>"><%= t.status %></span></td>
+<td style="font-weight: 600; color: var(--yellow);"><%= formatPriceShort(t.price) %></td>
+<td style="text-align:right;">
+<% if (t.status === 'pending') { %>
+<span style="color:var(--text-secondary);font-size:12px;">Otomatis</span>
+<% } else { %>
+<span style="color:var(--text-secondary);font-size:12px;"><%= t.status === 'completed' || t.status === 'success' ? 'Selesai' : 'Dibatalkan' %></span>
+<% } %>
+</td>
+</tr>
+<% }); %>
+<% if (transactions.length === 0) { %>
+<tr>
+<td colspan="7" style="padding: 32px; text-align: center; color: var(--text-secondary);">
+<div style="font-size:32px;margin-bottom:8px;">📋</div>
+<div>Belum ada transaksi</div>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="tab-broadcast" class="tab-content">
+<div class="broadcast-form">
+<h3>Broadcast Pesan ke User</h3>
+<form action="/admin/broadcast" method="POST" id="broadcastForm">
+<div class="input-group">
+<label>Subjek Pesan</label>
+<input type="text" name="subject" required placeholder="Contoh: Promo Spesial Bulan Ini">
+</div>
+<div class="input-group">
+<label>Pesan</label>
+<textarea name="message" required placeholder="Tulis pesan broadcast di sini..." style="min-height:150px;"></textarea>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+<button type="submit" class="btn btn-primary">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+Kirim Broadcast
+</button>
+</div>
+</form>
+<% if (typeof broadcastSuccess !== 'undefined' && broadcastSuccess) { %>
+<div class="alert-success" style="margin-top:16px;"><%= broadcastSuccess %></div>
+<% } %>
+</div>
+<p style="color:var(--text-secondary);font-size:13px;margin-top:12px;">Broadcast akan dikirim ke semua user yang terdaftar. Gunakan fitur ini untuk mengirim pengumuman penting atau promo.</p>
+</div>
+
+<div id="tab-settings" class="tab-content">
+<div class="settings-section">
+<h3>Pengaturan Situs</h3>
+<form action="/admin/settings" method="POST">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Nama Website</label>
+<input type="text" name="siteName" value="<%= settings.siteName || 'IBM STORE' %>" placeholder="IBM STORE">
+</div>
+<div class="input-group">
+<label>Nama Brand</label>
+<input type="text" name="gamePanelName" value="<%= settings.gamePanelName || 'IBM STORE' %>" placeholder="IBM STORE">
+</div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:20px;">Simpan Pengaturan</button>
+</form>
+</div>
+
+<div class="settings-section">
+<h3>Informasi Kontak</h3>
+<form action="/admin/settings" method="POST">
+<input type="hidden" name="siteName" value="<%= settings.siteName || 'IBM STORE' %>">
+<input type="hidden" name="gamePanelName" value="<%= settings.gamePanelName || 'IBM STORE' %>">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>WhatsApp</label>
+<input type="text" name="whatsapp" value="<%= settings.contact?.whatsapp || '' %>" placeholder="6281234567890">
+</div>
+<div class="input-group">
+<label>Telegram</label>
+<input type="text" name="telegram" value="<%= settings.contact?.telegram || '' %>" placeholder="@gamestore">
+</div>
+<div class="input-group">
+<label>Email</label>
+<input type="email" name="email" value="<%= settings.contact?.email || '' %>" placeholder="support@gamestore.com">
+</div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:20px;">Simpan Perubahan</button>
+</form>
+</div>
+
+
+<div class="settings-section">
+<h3>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;color:var(--yellow)"><path d="M5 3l14 9-14 9V3z"/></svg>
+Teks Running / Marquee
+</h3>
+<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Teks yang berjalan di bawah banner homepage. Gunakan <code style="background:rgba(250,204,21,.1);padding:1px 5px;border-radius:3px;color:var(--yellow)">|</code> sebagai pemisah antar teks.</p>
+<form action="/admin/settings" method="POST">
+<input type="hidden" name="section" value="marquee">
+<div class="input-group">
+<label>Isi Teks Marquee</label>
+<textarea name="marqueeText" class="settings-textarea" placeholder="Flash sale di toko kami | Produk premium tersedia | Fast response 24 jam"><%= settings.marqueeText || '' %></textarea>
+</div>
+<div class="marquee-preview" id="marqueePreview">
+<span style="font-size:11px;color:var(--text-secondary);margin-right:8px;flex-shrink:0">Preview:</span>
+<div style="overflow:hidden;flex:1">
+<span id="marqueePreviewText" style="font-size:12px;color:var(--text-primary);white-space:nowrap"><%= settings.marqueeText || 'Teks marquee akan tampil di sini...' %></span>
+</div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:16px;">Simpan Marquee</button>
+</form>
+</div>
+
+
+<div class="settings-section">
+<h3>QRIS Payment (PAKASIR) Settings</h3>
+<form action="/admin/pakasir" method="POST">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>API Mode</label>
+<select name="mode">
+<option value="production" <%= settings.pakasir?.mode === 'production' ? 'selected' : '' %>>Production</option>
+<option value="sandbox" <%= settings.pakasir?.mode === 'sandbox' ? 'selected' : '' %>>Sandbox</option>
+</select>
+</div>
+<div class="input-group">
+<label>Project Slug</label>
+<input type="text" name="project" value="<%= settings.pakasir?.project || '' %>" placeholder="Contoh: mystore (dari halaman proyek Pakasir)">
+</div>
+<div class="input-group">
+<label>API Key</label>
+<input type="text" name="apiKey" value="<%= settings.pakasir?.apiKey || '' %>" placeholder="Masukkan API Key PAKASIR">
+</div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:20px;">Simpan API Settings</button>
+</form>
+<p style="margin-top: 16px; color: var(--text-secondary); font-size: 14px;">Endpoint resmi: <code>https://app.pakasir.com</code> — Slug dan API Key tersedia di halaman detail Proyek Pakasir. Gunakan mode Sandbox untuk testing.</p>
+</div>
+
+<div class="settings-section">
+<h3>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;color:var(--yellow)"><path d="M5 3l14 9-14 9V3z"/></svg>
+WhatsApp Links
+</h3>
+<form action="/admin/whatsapp-links" method="POST" id="whatsappLinksForm">
+<input type="hidden" name="siteName" value="<%= settings.siteName || 'IBM STORE' %>">
+<input type="hidden" name="gamePanelName" value="<%= settings.gamePanelName || 'IBM STORE' %>">
+<input type="hidden" name="whatsapp" value="<%= settings.contact?.whatsapp || '' %>">
+<input type="hidden" name="telegram" value="<%= settings.contact?.telegram || '' %>">
+<input type="hidden" name="email" value="<%= settings.contact?.email || '' %>">
+<div id="whatsappLinksContainer" style="display:flex;flex-direction:column;gap:12px;">
+<% const existingWhatsappLinks = settings.whatsappLinks && settings.whatsappLinks.length > 0 ? settings.whatsappLinks : [{ id: 1, title: '', url: '' }]; %>
+<% existingWhatsappLinks.forEach((link, index) => { %>
+<div class="whatsapp-link-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+<input type="hidden" name="linkId" value="<%= index + 1 %>">
+<div style="flex:0 0 120px;min-width:100px;">
+<input type="text" name="linkTitle" value="<%= link.title || '' %>" placeholder="Judul" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;box-sizing:border-box;">
+</div>
+<div style="flex:1;min-width:150px;min-width:200px;">
+<input type="text" name="linkUrl" value="<%= link.url || '' %>" placeholder="https://wa.me/6281234567890" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;box-sizing:border-box;">
+</div>
+</div>
+<% }); %>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:12px;">Simpan WhatsApp Links</button>
+</form>
+</div>
+
+<div class="settings-section">
+<h3>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;color:var(--yellow)"><path d="M5 3l14 9-14 9V3z"/></svg>
+Telegram Links
+</h3>
+<form action="/admin/telegram-links" method="POST" id="telegramLinksForm">
+<input type="hidden" name="siteName" value="<%= settings.siteName || 'IBM STORE' %>">
+<input type="hidden" name="gamePanelName" value="<%= settings.gamePanelName || 'IBM STORE' %>">
+<input type="hidden" name="whatsapp" value="<%= settings.contact?.whatsapp || '' %>">
+<input type="hidden" name="telegram" value="<%= settings.contact?.telegram || '' %>">
+<input type="hidden" name="email" value="<%= settings.contact?.email || '' %>">
+<div id="telegramLinksContainer" style="display:flex;flex-direction:column;gap:12px;">
+<% const existingTelegramLinks = settings.telegramLinks && settings.telegramLinks.length > 0 ? settings.telegramLinks : [{ id: 1, title: '', url: '' }, { id: 2, title: '', url: '' }]; %>
+<% existingTelegramLinks.forEach((link, index) => { %>
+<div class="telegram-link-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+<input type="hidden" name="linkId" value="<%= index + 1 %>">
+<div style="flex:0 0 120px;min-width:100px;">
+<input type="text" name="linkTitle" value="<%= link.title || '' %>" placeholder="Judul" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;box-sizing:border-box;">
+</div>
+<div style="flex:1;min-width:150px;min-width:200px;">
+<input type="text" name="linkUrl" value="<%= link.url || '' %>" placeholder="https://t.me/username" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;box-sizing:border-box;">
+</div>
+</div>
+<% }); %>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:12px;">Simpan Telegram Links</button>
+</form>
+</div>
+
+<div class="settings-section">
+<h3>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;color:var(--yellow)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+Footer Links
+</h3>
+<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">Kelola link-link yang tampil di footer halaman. Atur per-section dengan judul dan URL masing-masing.</p>
+<form action="/admin/footer-links" method="POST" id="footerLinksForm">
+<input type="hidden" id="footerLinksData" name="footerLinksData" value="">
+<div id="footerLinksEditor" style="display:flex;flex-direction:column;gap:16px;">
+<% const footerLinksArr = settings.footerLinks && settings.footerLinks.length > 0 ? settings.footerLinks : []; %>
+<% if (footerLinksArr.length > 0) { %>
+<% footerLinksArr.forEach(function(section) { %>
+<div class="footer-section-block" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+<input type="text" name="footerSectionName" value="<%= section.section || '' %>" placeholder="Nama Section (contoh: INFORMASI)" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;font-weight:600;">
+<button type="button" class="btn btn-sm btn-danger" onclick="removeFooterSection(this)" style="padding:10px 12px;flex-shrink:0;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+</div>
+<div class="footer-links-list-editor" style="display:flex;flex-direction:column;gap:8px;">
+<% (section.links || []).forEach(function(link) { %>
+<div class="footer-link-editor-row" style="display:flex;gap:10px;align-items:center;">
+<input type="text" name="footerLinkTitle" value="<%= link.title || '' %>" placeholder="Judul Link" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;">
+<input type="text" name="footerLinkUrl" value="<%= link.url || '' %>" placeholder="URL (contoh: /faq)" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;">
+<button type="button" class="btn btn-sm btn-danger" onclick="removeFooterLinkRow(this)" style="padding:10px 12px;flex-shrink:0;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+</div>
+<% }); %>
+</div>
+<button type="button" class="btn btn-sm btn-secondary" onclick="addFooterLinkRow(this)" style="margin-top:10px;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Link
+</button>
+</div>
+<% }); %>
+<% } else { %>
+<div class="footer-section-template" style="display:none;">
+<div class="footer-section-block" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+<input type="text" name="footerSectionName" value="" placeholder="Nama Section (contoh: INFORMASI)" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;font-weight:600;">
+<button type="button" class="btn btn-sm btn-danger" onclick="removeFooterSection(this)" style="padding:10px 12px;flex-shrink:0;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+</div>
+<div class="footer-links-list-editor" style="display:flex;flex-direction:column;gap:8px;"></div>
+<button type="button" class="btn btn-sm btn-secondary" onclick="addFooterLinkRow(this)" style="margin-top:10px;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Link
+</button>
+</div>
+</div>
+<% } %>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+<button type="button" class="btn btn-secondary" onclick="addFooterSection()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Tambah Section
+</button>
+<button type="submit" class="btn btn-primary">Simpan Footer Links</button>
+</div>
+</form>
+</div>
+
+<div class="settings-section">
+<h3>Ubah Password Admin</h3>
+<form action="/admin/credentials" method="POST">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Password Saat Ini</label>
+<input type="password" name="currentPassword" required>
+</div>
+<div class="input-group">
+<label>Username Baru</label>
+<input type="text" name="newUsername" placeholder="Masukkan username baru">
+</div>
+<div class="input-group">
+<label>Password Baru</label>
+<input type="password" name="newPassword" placeholder="Masukkan password baru">
+</div>
+</div>
+<button type="submit" class="btn btn-primary" style="margin-top:20px;">Ubah Credentials</button>
+</form>
+</div>
+</div>
+
+<div id="tab-vouchers" class="tab-content">
+<div class="admin-toolbar">
+<button class="btn btn-primary" onclick="toggleForm('addVoucher')">+ Tambah Voucher</button>
+</div>
+<div id="addVoucherForm" class="edit-form">
+<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tambah / Edit Voucher</h3>
+<form action="/admin/vouchers" method="POST">
+<div class="admin-form-grid">
+<div class="input-group">
+<label>Kode Voucher</label>
+<input type="text" name="code" required placeholder="Contoh: DISKON20" style="text-transform: uppercase;">
+</div>
+<div class="input-group" style="grid-column: 1 / -1;">
+<label>Tipe Diskon</label>
+<div class="vf-toggle-group">
+<label class="vf-toggle-opt">
+<input type="radio" name="discountType" value="persen" checked onchange="vfHandleDiskon(this.value)">
+<span class="vf-toggle-btn">Persentase (%)</span>
+</label>
+<label class="vf-toggle-opt">
+<input type="radio" name="discountType" value="nominal" onchange="vfHandleDiskon(this.value)">
+<span class="vf-toggle-btn">Potongan (Rp)</span>
+</label>
+</div>
+</div>
+<div class="input-group">
+<label id="vfDiskonLabel">Diskon (%)</label>
+<div style="position: relative;">
+<input type="number" name="discountValue" id="vfDiskonInput" required placeholder="20" min="0">
+<span id="vfDiskonSuffix" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:13px;pointer-events:none;">%</span>
+</div>
+</div>
+<div class="input-group" style="grid-column: 1 / -1;">
+<label>Tipe Batas Pembelian</label>
+<div class="vf-toggle-group">
+<label class="vf-toggle-opt">
+<input type="radio" name="limitType" value="minimum" checked onchange="vfHandleLimit(this.value)">
+<span class="vf-toggle-btn">Minimum Pembelian</span>
+</label>
+<label class="vf-toggle-opt">
+<input type="radio" name="limitType" value="maximum" onchange="vfHandleLimit(this.value)">
+<span class="vf-toggle-btn">Maximum Pembelian</span>
+</label>
+</div>
+</div>
+<div class="input-group">
+<label id="vfLimitLabel">Minimum Pembelian (Rp)</label>
+<input type="number" name="limitValue" placeholder="50000" min="0">
+</div>
+<div class="input-group">
+<label>Status</label>
+<select name="active">
+<option value="true">Active</option>
+<option value="false">Inactive</option>
+</select>
+</div>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan</button>
+<button type="button" class="btn btn-secondary" onclick="toggleForm('addVoucher')">Batal</button>
+</div>
+</form>
+</div>
+<style>
+.vf-toggle-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.vf-toggle-opt { flex: 1; cursor: pointer; min-width: 140px; }
+.vf-toggle-opt input[type="radio"] { display: none; }
+.vf-toggle-btn {
+  display: block; text-align: center; padding: 10px 14px;
+  border-radius: 10px; border: 1px solid var(--border-color, #2d2d3d);
+  background: var(--bg-secondary, #1a1a2e); color: var(--text-secondary, #94a3b8);
+  font-size: 13px; font-weight: 500; transition: all 0.2s; user-select: none;
+}
+.vf-toggle-opt input[type="radio"]:checked + .vf-toggle-btn {
+  background: rgba(99,102,241,0.15); border-color: #6366f1; color: #a5b4fc;
+}
+</style>
+<script>
+function vfHandleDiskon(val) {
+  const lbl = document.getElementById('vfDiskonLabel');
+  const sfx = document.getElementById('vfDiskonSuffix');
+  const inp = document.getElementById('vfDiskonInput');
+  if (val === 'persen') {
+    lbl.textContent = 'Diskon (%)'; sfx.textContent = '%';
+    inp.placeholder = '20'; inp.max = 100;
+  } else {
+    lbl.textContent = 'Potongan Harga (Rp)'; sfx.textContent = 'Rp';
+    inp.placeholder = '10000'; inp.removeAttribute('max');
+  }
+}
+function vfHandleLimit(val) {
+  document.getElementById('vfLimitLabel').textContent =
+    val === 'minimum' ? 'Minimum Pembelian (Rp)' : 'Maximum Pembelian (Rp)';
+}
+</script>
+<div class="admin-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>Kode</th>
+<th>Diskon</th>
+<th>Batas Pembelian</th>
+<th>Status</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<% if (settings.vouchers && settings.vouchers.length > 0) { %>
+<% settings.vouchers.forEach((v) => { %>
+<tr>
+<td><code style="background: rgba(250,204,21,.06); padding: 6px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;"><%= v.code %></code></td>
+<td style="font-weight: 600; color: #22c55e;">
+<% if (v.discountType === 'nominal') { %>-Rp <%= (v.discountValue || 0).toLocaleString('id-ID') %>
+<% } else { %><%= v.discountValue || v.discountPercent || 0 %>%<% } %>
+</td>
+<td>
+<% const lType = v.limitType || 'minimum'; const lVal = v.limitValue !== undefined ? v.limitValue : (v.minPurchase || 0); %>
+<span style="font-size:11px;color:var(--text-secondary);margin-right:4px;"><%= lType === 'minimum' ? 'Min' : 'Max' %></span><%= formatPriceShort(lVal) %>
+</td>
+<td><span class="badge <%= v.active ? 'badge-active' : 'badge-inactive' %>"><%= v.active ? 'Active' : 'Inactive' %></span></td>
+<td style="text-align:right;">
+<form action="/admin/vouchers/<%= v.code %>/delete" method="POST" onsubmit="return confirm('Yakin hapus voucher ini?')">
+<button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+</form>
+</td>
+</tr>
+<% }); %>
+<% } else { %>
+<tr>
+<td colspan="5" style="padding: 32px; text-align: center; color: var(--text-secondary);">Belum ada voucher</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="tab-banners" class="tab-content">
+<div class="admin-toolbar">
+<button class="btn btn-primary" onclick="toggleForm('addBanner')">+ Tambah Banner</button>
+</div>
+<div id="addBannerForm" class="edit-form">
+<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Edit Banner</h3>
+<form action="/admin/banners" method="POST" enctype="multipart/form-data">
+<input type="hidden" name="bannerId" id="bannerEditId" value="">
+<input type="hidden" name="existingImage" id="bannerEditImage" value="">
+<div class="input-group">
+<label>Gambar Banner</label>
+<input type="file" name="bannerImage" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+<p class="admin-form-note">Format: JPEG, PNG, GIF, WebP. Maksimal 5MB. Kosongkan jika tidak ingin mengubah gambar.</p>
+</div>
+<div class="input-group">
+<label>Status</label>
+<select name="bannerActive" id="bannerEditActive">
+<option value="true">Active</option>
+<option value="false">Inactive</option>
+</select>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan</button>
+<button type="button" class="btn btn-secondary" onclick="toggleForm('addBanner')">Batal</button>
+</div>
+</form>
+</div>
+<div class="admin-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>Preview</th>
+<th>Status</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<% const allBanners = settings.banners && settings.banners.length > 0 ? settings.banners : []; %>
+<% if (allBanners.length > 0) { %>
+<% allBanners.forEach((banner) => { %>
+<tr>
+<td><img src="<%= banner.image %>" alt="Banner" style="width:160px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"></td>
+<td><span class="badge <%= banner.active ? 'badge-active' : 'badge-inactive' %>"><%= banner.active ? 'Active' : 'Inactive' %></span></td>
+<td style="text-align:right;">
+<div class="admin-action-row admin-action-row-end">
+<button type="button" onclick="editBanner('<%= banner.id %>')" class="btn btn-sm btn-secondary">Edit</button>
+<form action="/admin/banners/<%= banner.id %>/delete" method="POST">
+<button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+</form>
+</div>
+</td>
+</tr>
+<% }); %>
+<% } else { %>
+<tr>
+<td colspan="3" style="padding: 32px; text-align: center; color: var(--text-secondary);">Belum ada banner</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="tab-users" class="tab-content">
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+<form action="/admin/delete-bot-accounts" method="POST" onsubmit="return confirm('Hapus semua akun yang tidak memiliki transaksi sukses?\nAkun dengan minimal 1 transaksi berhasil akan tetap aman.')" style="margin:0;">
+<button type="submit" class="btn btn-danger">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+Hapus Semua Akun Bot
+</button>
+</form>
+<% if (locals.success === 'deleted_bots') { %>
+<div style="padding:10px 16px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#4ade80;font-size:13px;font-weight:600;">
+✅ Berhasil hapus <%= locals.count || 0 %> akun bot
+</div>
+<% } %>
+</div>
+<div class="admin-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>Username</th>
+<th>IP Pendaftaran</th>
+<th>Login Terakhir</th>
+<th>Tanggal Daftar</th>
+<th>Total Transaksi</th>
+<th>Status</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<% if (users.length > 0) { %>
+<% users.forEach((u) => { %>
+<% const userTxCount = transactions.filter(t => t.username === u.username).length; %>
+<% const userRevenue = transactions.filter(t => t.username === u.username && t.status === 'completed').reduce((s, t) => s + t.price, 0); %>
+<tr>
+<td style="font-weight: 600;"><%= u.username %></td>
+<td style="font-size: 12px; color: var(--cyan);"><%= u.registrationIP || '-' %></td>
+<td style="font-size: 12px; color: var(--text-secondary);"><%= u.lastLoginIP || '-' %></td>
+<td style="color: var(--text-secondary);"><%= new Date(u.createdAt).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'}) %></td>
+<td>
+<span style="font-size:13px;"><%= userTxCount %> transaksi</span>
+<% if (userRevenue > 0) { %>
+<span style="color:var(--yellow);font-size:12px;display:block;">Rp <%= (userRevenue/1000).toFixed(0) %>K total</span>
+<% } %>
+</td>
+<td><span class="badge badge-active">Active</span></td>
+<td style="text-align:right;">
+<form action="/admin/users/<%= u.username %>/delete" method="POST" onsubmit="return confirm('Hapus user &quot;<%= u.username %>&quot;?\nSemua data transaksi user ini akan tetap tersimpan.')">
+<button type="submit" class="btn btn-sm btn-danger">🗑 Hapus</button>
+</form>
+</td>
+</tr>
+<% }); %>
+<% } else { %>
+<tr>
+<td colspan="7" style="padding: 32px; text-align: center; color: var(--text-secondary);">
+<div style="font-size:32px;margin-bottom:8px;">👤</div>
+<div>Belum ada user terdaftar</div>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+<div style="margin-top:12px;padding:12px 16px;background:rgba(255,255,255,.03);border-radius:8px;">
+<p style="color:var(--text-secondary);font-size:13px;margin:0;">Total: <strong style="color:var(--text-primary);"><%= users.length %></strong> user terdaftar</p>
+</div>
+</div>
+
+<div id="tab-categories" class="tab-content">
+<div class="admin-toolbar">
+<button class="btn btn-primary" onclick="toggleForm('addCategory')">+ Tambah Kategori</button>
+</div>
+
+<% if (locals.categorySuccess) { %>
+<div id="categorySuccessAlert" style="margin-bottom:16px;padding:14px 18px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:10px;display:flex;align-items:center;gap:10px;">
+<span style="font-size:18px;">✅</span>
+<span style="color:#4ade80;font-weight:600;font-size:14px;"><%= locals.categorySuccess %></span>
+</div>
+<% } %>
+
+<div id="addCategoryForm" class="edit-form">
+<h3 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">Tambah Kategori Baru</h3>
+<form action="/admin/categories" method="POST">
+<div class="input-group">
+<label>Nama Label <span style="color:var(--cyan);font-size:12px;">(Nama yang tampil ke user)</span></label>
+<input type="text" name="categoryLabel" required placeholder="Contoh: Valorant, Genshin Impact, CODM" maxlength="50">
+</div>
+<div class="input-group" style="margin-top:14px;">
+<label>Slug Kategori <span style="color:var(--text-secondary);font-size:12px;">(otomatis dari nama, atau isi manual)</span></label>
+<input type="text" name="categoryName" placeholder="valorant / genshin-impact / codm (opsional)" maxlength="40" id="categorySlugInput">
+<p style="margin:6px 0 0;font-size:12px;color:var(--text-secondary);">Huruf kecil, angka, strip. Kosongkan untuk otomatis.</p>
+</div>
+<div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-primary">Simpan Kategori</button>
+<button type="button" class="btn btn-secondary" onclick="toggleForm('addCategory')">Batal</button>
+</div>
+</form>
+</div>
+
+<div class="admin-table-wrapper">
+<table class="admin-table">
+<thead>
+<tr>
+<th>Label Tampilan</th>
+<th>Slug</th>
+<th style="text-align:right;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<% const customCategories = settings.categories || []; %>
+<% const catLabels = settings.categoryLabels || {}; %>
+<% if (customCategories.length > 0) { %>
+<% customCategories.forEach((cat) => { %>
+<tr>
+<td><span class="badge badge-active"><%= catLabels[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1)) %></span></td>
+<td><code style="background: rgba(250,204,21,.06); padding: 6px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;"><%= cat %></code></td>
+<td style="text-align:right;">
+<form action="/admin/categories/<%= cat %>/delete" method="POST" onsubmit="return confirmDeleteCategory(event, '<%= catLabels[cat] || cat %>')">
+<button type="submit" class="btn btn-sm btn-danger">🗑 Hapus</button>
+</form>
+</td>
+</tr>
+<% }); %>
+<% } else { %>
+<tr>
+<td colspan="3" style="padding: 32px; text-align: center; color: var(--text-secondary);">
+<div style="font-size:32px;margin-bottom:8px;">📂</div>
+<div>Belum ada kategori tambahan. Klik <strong>+ Tambah Kategori</strong> untuk mulai.</div>
+</td>
+</tr>
+<% } %>
+</tbody>
+</table>
+</div>
+
+<div style="margin-top:16px;padding:16px;background:rgba(0,212,255,.06);border-radius:8px;display:flex;align-items:flex-start;gap:10px;">
+<span style="font-size:16px;margin-top:1px;">ℹ️</span>
+<div>
+<p style="color:var(--cyan);font-size:13px;margin:0 0 4px;font-weight:600;">Kategori Default (tidak bisa dihapus):</p>
+<p style="color:var(--text-secondary);font-size:13px;margin:0;">
+<strong style="color:var(--text-primary);">Free Fire</strong> (freefire) &nbsp;·&nbsp;
+<strong style="color:var(--text-primary);">Mobile Legends</strong> (mlbb) &nbsp;·&nbsp;
+<strong style="color:var(--text-primary);">PUBG</strong> (pubg)
+</p>
+</div>
+</div>
+</div>
+
+<div id="tab-maintenance" class="tab-content">
+<div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;text-align:center;max-width:500px;margin:0 auto;">
+<div style="width:80px;height:80px;margin:0 auto 24px;border-radius:50%;background:<%= maintenanceMode ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#22c55e,#16a34a' %>;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px <%= maintenanceMode ? 'rgba(239,68,68,.3)' : 'rgba(34,197,94,.3)' %>;">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+<% if (maintenanceMode) { %>
+<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+<% } else { %>
+<polyline points="20 6 9 17 4 12"/>
+<% } %>
+</svg>
+</div>
+<h2 style="font-size:24px;font-weight:700;margin-bottom:12px;color:<%= maintenanceMode ? '#ef4444' : '#22c55e' %>;">
+<%= maintenanceMode ? 'Maintenance AKTIF' : 'Maintenance NONAKTIF' %>
+</h2>
+<p style="color:var(--text-secondary);font-size:14px;margin-bottom:28px;line-height:1.6;">
+<% if (maintenanceMode) { %>
+Website sedang dalam mode maintenance. Semua user regular tidak bisa akses kecuali admin.
+<% } else { %>
+Website dalam kondisi normal. User bisa mengakses semua fitur tanpa batasan.
+<% } %>
+</p>
+<form action="/admin/maintenance" method="POST">
+<input type="hidden" name="action" value="<%= maintenanceMode ? 'disable' : 'enable' %>">
+<button type="submit" class="btn <%= maintenanceMode ? 'btn-secondary' : 'btn-danger' %>" style="padding:14px 32px;font-size:16px;font-weight:600;">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;">
+<% if (maintenanceMode) { %>
+<polyline points="20 6 9 17 4 12"/>
+<% } else { %>
+<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+<% } %>
+</svg>
+<%= maintenanceMode ? 'Nonaktifkan Maintenance' : 'Aktifkan Maintenance' %>
+</button>
+</form>
+</div>
+<div style="margin-top:24px;padding:16px;background:rgba(255,255,255,.03);border-radius:12px;">
+<h4 style="margin:0 0 12px;font-size:14px;font-weight:600;color:var(--text-primary);">Informasi Maintenance:</h4>
+<ul style="margin:0;padding:0 0 0 20px;color:var(--text-secondary);font-size:13px;line-height:1.8;">
+<li>Ketika maintenance aktif, semua user regular akan diarahkan ke halaman maintenance</li>
+<li>Admin tetap bisa mengakses dan mengelola dashboard secara normal</li>
+<li>Gunakan fitur ini saat melakukan update sistem atau maintenance server</li>
+</ul>
+</div>
+</div>
+
+<script>
+function switchTab(tab) {
+document.querySelectorAll('.tab-btn').forEach((btn) => btn.classList.remove('active'));
+document.querySelectorAll('.tab-content').forEach((content) => {
+content.classList.remove('active');
+content.style.opacity = '';
+});
+document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+const target = document.getElementById(`tab-${tab}`);
+target.classList.add('active');
+anime({
+targets: target,
+opacity: [0, 1],
+translateY: [12, 0],
+duration: 380,
+easing: 'easeOutExpo'
+});
+const rows = target.querySelectorAll('.admin-table tbody tr, .mobile-product-card');
+if (rows.length) {
+anime({
+targets: rows,
+translateX: [-18, 0],
+opacity: [0, 1],
+delay: anime.stagger(35, { start: 60 }),
+duration: 380,
+easing: 'easeOutExpo'
+});
+}
+if (window.innerWidth <= 768) {
+document.getElementById('tabNav').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+}
+
+function toggleForm(id) {
+const form = document.getElementById(id + 'Form');
+if (!form) return;
+if (form.classList.contains('show')) {
+anime({
+targets: form,
+opacity: [1, 0],
+translateY: [0, -8],
+duration: 220,
+easing: 'easeInQuad',
+complete: () => form.classList.remove('show')
+});
+} else {
+form.classList.add('show');
+anime({
+targets: form,
+opacity: [0, 1],
+translateY: [-12, 0],
+duration: 400,
+easing: 'easeOutExpo'
+});
+anime({
+targets: form.querySelectorAll('.input-group, .pricing-keys-layout, .admin-form-grid'),
+translateY: [10, 0],
+opacity: [0, 1],
+delay: anime.stagger(50, { start: 80 }),
+duration: 380,
+easing: 'easeOutExpo'
+});
+}
+}
+
+function toggleEditForm(id) {
+const form = document.getElementById(id);
+if (!form) return;
+const isVisible = window.getComputedStyle(form).display !== 'none';
+document.querySelectorAll('.product-edit-panel').forEach((panel) => {
+panel.style.display = 'none';
+panel.style.opacity = '';
+});
+if (!isVisible) {
+form.style.display = form.dataset.display || (form.tagName === 'TR' ? 'table-row' : 'block');
+anime({
+targets: form,
+opacity: [0, 1],
+translateY: [-10, 0],
+duration: 380,
+easing: 'easeOutExpo'
+});
+anime({
+targets: form.querySelectorAll('.input-group, .pricing-keys-layout, .admin-form-grid'),
+translateY: [8, 0],
+opacity: [0, 1],
+delay: anime.stagger(45, { start: 60 }),
+duration: 350,
+easing: 'easeOutExpo'
+});
+form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+anime({
+targets: '.admin-title',
+translateX: [-30, 0],
+opacity: [0, 1],
+duration: 700,
+easing: 'easeOutExpo'
+});
+anime({
+targets: '.stat-card',
+translateY: [-28, 0],
+opacity: [0, 1],
+delay: anime.stagger(80),
+duration: 600,
+easing: 'easeOutBack'
+});
+anime({
+targets: '.tab-btn',
+translateY: [-10, 0],
+opacity: [0, 1],
+delay: anime.stagger(50, { start: 300 }),
+duration: 450,
+easing: 'easeOutExpo'
+});
+anime({
+targets: '#tab-products.active .admin-toolbar',
+translateX: [-20, 0],
+opacity: [0, 1],
+duration: 500,
+delay: 400,
+easing: 'easeOutExpo'
+});
+anime({
+targets: '#tab-products.active .admin-table tbody tr, #tab-products.active .mobile-product-card',
+translateX: [-16, 0],
+opacity: [0, 1],
+delay: anime.stagger(40, { start: 500 }),
+duration: 380,
+easing: 'easeOutExpo'
+});
+
+document.querySelectorAll('[id^="newPricingRows"], [id^="editPricingRows"]').forEach(function(c) {
+  updateRemoveButtons(c);
+});
+
+var marqueeInput = document.querySelector('textarea[name="marqueeText"]');
+var marqueePreviewText = document.getElementById('marqueePreviewText');
+if (marqueeInput && marqueePreviewText) {
+marqueeInput.addEventListener('input', function() {
+marqueePreviewText.textContent = this.value || 'Teks marquee akan tampil di sini...';
+});
+}
+
+function filterTransactions(status, btn) {
+  document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const rows = document.querySelectorAll('#transactionsTableBody tr[data-tx-status]');
+  rows.forEach(row => {
+    const show = status === 'all' || row.dataset.txStatus === status;
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function confirmDeleteCategory(e, name) {
+  if (!confirm('Yakin hapus kategori "' + name + '"?\n\nProduk dengan kategori ini tidak akan ikut terhapus, tapi kategorinya tidak akan muncul di list.')) {
+    e.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+// Auto-switch tab berdasarkan URL param ?tab=xxx
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var tab = params.get('tab');
+  if (tab) {
+    setTimeout(function() {
+      switchTab(tab);
+      // Auto buka form jika param openForm=addCategory
+      var openForm = params.get('openForm');
+      if (openForm) toggleForm(openForm);
+    }, 100);
+  }
+})();
+
+// Auto-hide success alert setelah 4 detik
+var successAlert = document.getElementById('categorySuccessAlert');
+if (successAlert) {
+  setTimeout(function() {
+    anime({ targets: successAlert, opacity: [1, 0], translateY: [0, -8], duration: 350, easing: 'easeInQuad', complete: function() { successAlert.remove(); } });
+  }, 4000);
+}
+
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+btn.addEventListener('mouseenter', function() {
+if (!this.classList.contains('active')) {
+anime({ targets: this, scale: [1, 1.05], duration: 180, easing: 'easeOutQuad' });
+}
+});
+btn.addEventListener('mouseleave', function() {
+anime({ targets: this, scale: [1.05, 1], duration: 180, easing: 'easeOutQuad' });
+});
+});
+
+document.querySelectorAll('.btn-primary, .btn-danger').forEach(function(btn) {
+btn.addEventListener('click', function() {
+anime({
+targets: this,
+scale: [1, 0.93, 1],
+duration: 260,
+easing: 'easeOutElastic(1, .5)'
+});
+});
+});
+});
+
+function editBanner(bannerId) {
+var banners = <%- JSON.stringify(settings.banners || []) %>;
+var banner = banners.find(function(b) { return b.id === bannerId; });
+if (banner) {
+document.getElementById('bannerEditId').value = banner.id;
+document.getElementById('bannerEditImage').value = banner.image || '';
+document.getElementById('bannerEditActive').value = banner.active ? 'true' : 'false';
+toggleForm('addBanner');
+}
+}
+
+function addFooterSection() {
+var editor = document.getElementById('footerLinksEditor');
+var newSection = document.createElement('div');
+newSection.className = 'footer-section-block';
+newSection.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;';
+newSection.innerHTML = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><input type="text" name="footerSectionName" value="" placeholder="Nama Section (contoh: INFORMASI)" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;font-weight:600;"><button type="button" class="btn btn-sm btn-danger" onclick="removeFooterSection(this)" style="padding:10px 12px;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="footer-links-list-editor" style="display:flex;flex-direction:column;gap:8px;"></div><button type="button" class="btn btn-sm btn-secondary" onclick="addFooterLinkRow(this)" style="margin-top:10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Link</button>';
+editor.appendChild(newSection);
+anime({ targets: newSection, opacity: [0, 1], translateY: [20, 0], duration: 400, easing: 'easeOutExpo' });
+}
+
+function removeFooterSection(btn) {
+var section = btn.closest('.footer-section-block');
+if (section) {
+anime({ targets: section, opacity: [1, 0], translateY: [0, -10], duration: 250, easing: 'easeInQuad', complete: function() { section.remove(); } });
+}
+}
+
+function addFooterLinkRow(btn) {
+var sectionBlock = btn.closest('.footer-section-block');
+var linksList = sectionBlock.querySelector('.footer-links-list-editor');
+if (linksList) {
+var newRow = document.createElement('div');
+newRow.className = 'footer-link-editor-row';
+newRow.style.cssText = 'display:flex;gap:10px;align-items:center;';
+newRow.innerHTML = '<input type="text" name="footerLinkTitle" value="" placeholder="Judul Link" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;"><input type="text" name="footerLinkUrl" value="" placeholder="URL (contoh: /faq)" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;"><button type="button" class="btn btn-sm btn-danger" onclick="removeFooterLinkRow(this)" style="padding:10px 12px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+linksList.appendChild(newRow);
+anime({
+targets: newRow,
+opacity: [0, 1],
+translateY: [10, 0],
+duration: 300,
+easing: 'easeOutExpo'
+});
+}
+}
+
+function removeFooterLinkRow(btn) {
+var row = btn.closest('.footer-link-editor-row');
+if (row) {
+anime({
+targets: row,
+opacity: [1, 0],
+translateX: [0, -20],
+duration: 250,
+easing: 'easeInQuad',
+complete: function() { row.remove(); }
+});
+}
+}
+
+document.getElementById('footerLinksForm').addEventListener('submit', function(e) {
+var sections = [];
+var sectionBlocks = document.querySelectorAll('#footerLinksEditor > .footer-section-block');
+sectionBlocks.forEach(function(block) {
+var sectionName = block.querySelector('input[name="footerSectionName"]').value.trim();
+if (sectionName) {
+var links = [];
+var linkRows = block.querySelectorAll('.footer-link-editor-row');
+linkRows.forEach(function(row) {
+var title = row.querySelector('input[name="footerLinkTitle"]').value.trim();
+var url = row.querySelector('input[name="footerLinkUrl"]').value.trim();
+if (title && url) {
+links.push({ id: links.length + 1, title: title, url: url });
+}
+});
+sections.push({ section: sectionName, links: links });
+}
+});
+document.getElementById('footerLinksData').value = JSON.stringify(sections);
+});
+
+function toggleNewCategoryInput() {
+  var select = document.getElementById('newProductCategory');
+  var input = document.getElementById('newCategoryInput');
+  if (select.value === '__new__') {
+    input.style.display = 'block';
+    input.required = true;
+    select.required = false;
+  } else {
+    input.style.display = 'none';
+    input.required = false;
+    select.required = true;
+  }
+}
+
+function updateRemoveButtons(container) {
+  var rows = container.querySelectorAll('.pricing-editor-row');
+  rows.forEach(function(r) {
+    var btn = r.querySelector('.btn-remove-row');
+    if (btn) btn.style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+  });
+}
+
+function addPricingRowTo(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  var newRow = document.createElement('div');
+  newRow.className = 'pricing-editor-row';
+  newRow.innerHTML = '<input type="number" name="pricingDays" min="1" value="" placeholder="1"><input type="number" name="pricingPrices" min="0" value="" placeholder="15000"><button type="button" class="btn-remove-row" onclick="removePricingRow(this)">×</button>';
+  container.appendChild(newRow);
+  anime({ targets: newRow, opacity: [0, 1], translateY: [-10, 0], duration: 300, easing: 'easeOutExpo' });
+  updateRemoveButtons(container);
+}
+
+function addPricingRow() {
+  addPricingRowTo('newPricingRows');
+}
+
+function removePricingRow(btn) {
+  var row = btn.closest('.pricing-editor-row');
+  if (row) {
+    var container = row.parentElement;
+    if (container.querySelectorAll('.pricing-editor-row').length > 1) {
+      anime({ targets: row, opacity: [1, 0], translateX: [0, -20], duration: 250, easing: 'easeInQuad', complete: function() { row.remove(); updateRemoveButtons(container); } });
+    }
+  }
+}
+</script>

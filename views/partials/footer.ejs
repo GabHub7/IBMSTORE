@@ -1,0 +1,82 @@
+<%
+const siteTitle = (settings?.siteName || 'IBM STORE').trim() || 'IBM STORE';
+const allContactLinks = [
+  ...(settings.whatsappLinks || []).map(l => ({ ...l, type: 'whatsapp' })),
+  ...(settings.telegramLinks || []).map(l => ({ ...l, type: 'telegram' }))
+];
+%>
+<footer class="footer">
+<div class="container">
+  <div class="footer-inner">
+
+    <div class="footer-brand-col">
+      <div class="footer-brand-wrap">
+        <div class="footer-brand-icon">
+          <img src="/images/logo-ibm.jpg" alt="<%= siteTitle %>" onerror="this.style.display='none'">
+        </div>
+        <div class="footer-brand-name"><%= siteTitle %></div>
+      </div>
+      <p class="footer-brand-desc"><%= siteTitle %> adalah platform top-up game tercepat dan terpercaya. Dapatkan diamond, voucher, dan item game impianmu dengan harga terbaik dan proses instan 24 jam.</p>
+      <div class="footer-status-badge">
+        <span class="footer-status-dot"></span>
+        Operasional 24 Jam
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4 class="footer-col-heading">Informasi</h4>
+      <ul class="footer-links-list">
+        <li><a href="/cara-beli" class="footer-link-item">Cara Beli</a></li>
+        <li><a href="/faq" class="footer-link-item">Bantuan / FAQ</a></li>
+        <li><a href="/syarat-ketentuan" class="footer-link-item">Syarat Ketentuan</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4 class="footer-col-heading">Layanan</h4>
+      <ul class="footer-links-list">
+        <li><a href="/" class="footer-link-item">Produk Populer</a></li>
+        <li><a href="/invoice" class="footer-link-item">Cek Riwayat</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4 class="footer-col-heading">Hubungi Kami</h4>
+      <div class="footer-contact-list">
+        <% allContactLinks.forEach(function(c) { %>
+        <a href="<%= c.url %>" target="_blank" rel="noopener" class="footer-contact-item">
+          <div class="footer-contact-icon <%= c.type === 'telegram' ? 'tg' : 'wa' %>">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <% if (c.type === 'telegram') { %><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>
+              <% } else { %><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <% } %>
+            </svg>
+          </div>
+          <div class="footer-contact-text">
+            <span class="footer-contact-label"><%= c.type === 'telegram' ? 'Telegram' : 'WhatsApp' %></span>
+            <span class="footer-contact-name"><%= c.title %></span>
+          </div>
+        </a>
+        <% }); %>
+        <% if (!allContactLinks.length) { %>
+        <div class="footer-contact-item">
+          <div class="footer-contact-icon tg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+          </div>
+          <div class="footer-contact-text">
+            <span class="footer-contact-label">Support</span>
+            <span class="footer-contact-name">Hubungi Admin</span>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+  <hr class="footer-divider">
+  <div class="footer-bottom">
+    <div class="footer-bottom-copy">&copy; 2024 <span><%= siteTitle %></span>. All Rights Reserved.</div>
+    <div class="footer-bottom-tag">Premium <span>Game Panel</span> Provider</div>
+  </div>
+</div>
+</footer>

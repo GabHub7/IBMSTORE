@@ -1,0 +1,39 @@
+<%
+const faqContent = settings?.faq || 'Q: Bagaimana cara membeli produk?\nA: Pilih produk yang diinginkan, pilih durasi, gunakan voucher jika ada, dan lakukan pembayaran via QRIS.\n\nQ: Bagaimana cara aktivasi setelah pembelian?\nA: Setelah pembayaran berhasil, key akan langsung diberikan dan bisa digunakan di aplikasi terkait.\n\nQ: Apakah aman dari banned?\nA: Produk kami dilengkapi anti banned system yang terus diupdate untuk keamanan maksimal.\n\nQ: Bagaimana jika ada masalah?\nA: Hubungi admin via WhatsApp yang tertera di halaman kontak.';
+const faqItems = faqContent.split('\n\n').filter(item => item.trim());
+%>
+<div class="container" style="padding: 40px 20px; max-width: 900px;">
+<h1 style="font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 800; margin-bottom: 32px; color: var(--yellow);">BANTUAN / FAQ</h1>
+
+<div class="card">
+<% if (faqItems.length > 0) { %>
+<% faqItems.forEach((item, index) => { %>
+<% const parts = item.split('\n'); %>
+<% const question = parts.find(p => p.startsWith('Q:'))?.replace('Q:', '').trim(); %>
+<% const answer = parts.find(p => p.startsWith('A:'))?.replace('A:', '').trim(); %>
+<% if (question && answer) { %>
+<div style="margin-bottom: <%= index < faqItems.length - 1 ? '24px' : '0' %>; padding-bottom: <%= index < faqItems.length - 1 ? '24px' : '0' %>; border-bottom: <%= index < faqItems.length - 1 ? '1px solid var(--border)' : 'none' %>;">
+<h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+<%= question %>
+</h3>
+<p style="color: var(--text-secondary); line-height: 1.8; padding-left: 26px;"><%= answer %></p>
+</div>
+<% } %>
+<% }); %>
+<% } else { %>
+<p style="color: var(--text-secondary); text-align: center; padding: 40px;">FAQ belum tersedia.</p>
+<% } %>
+</div>
+
+<div style="margin-top: 40px;">
+<div class="card" style="background: rgba(250, 204, 21, 0.06); border-color: rgba(250, 204, 21, 0.3);">
+<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--yellow);">Still Need Help?</h3>
+<p style="color: var(--text-secondary); margin-bottom: 16px;">Jika pertanyaan Anda tidak ada di atas, silakan hubungi tim support kami:</p>
+<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+<% const faqWaLink = (settings.whatsappLinks && settings.whatsappLinks.length > 0) ? settings.whatsappLinks[0].url : (settings?.contact?.whatsapp ? 'https://wa.me/' + settings.contact.whatsapp.replace(/\D/g,'') : '#'); %>
+<a href="<%= faqWaLink %>" target="_blank" class="btn btn-secondary btn-sm">WhatsApp</a>
+</div>
+</div>
+</div>
+</div>

@@ -1,0 +1,38 @@
+<div class="admin-login-page">
+<div class="admin-login-card">
+  <div class="admin-login-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+      <polyline points="10 17 15 12 10 7"/>
+      <line x1="15" y1="12" x2="3" y2="12"/>
+    </svg>
+  </div>
+  <div class="admin-login-title">Selamat Datang</div>
+  <div class="admin-login-subtitle">Masuk ke akun IBM Store kamu</div>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert-error"><%= error %></div>
+  <% } %>
+
+  <form action="/admin-login" method="POST">
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-input" placeholder="Masukkan username" required autocomplete="username">
+    </div>
+    <div class="form-group" style="display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <label class="form-label" style="margin-bottom:0">Password</label>
+      </div>
+      <input type="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn-login">Masuk Sekarang</button>
+  </form>
+
+  <div style="text-align:center;margin-top:20px;">
+    <a href="/" style="color:var(--text-secondary);font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:color .2s;" onmouseover="this.style.color='var(--blue-light)'" onmouseout="this.style.color='var(--text-secondary)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Kembali ke Beranda
+    </a>
+  </div>
+</div>
+</div>

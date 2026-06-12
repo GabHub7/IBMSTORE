@@ -1,0 +1,225 @@
+<%
+const siteName = (settings?.siteName || 'IBM STORE').trim() || 'IBM STORE';
+const getPrimaryPrice = (product) => {
+  const opts = Array.isArray(product.pricingOptions) ? product.pricingOptions : [];
+  return opts.length > 0 ? opts[0] : { days: 1, price: product.price1day || 0 };
+};
+const totalProducts = products.filter(p => p.status === 'active').length;
+const totalStock = products.reduce((acc, p) => acc + (Array.isArray(p.keys) ? p.keys.length : 0), 0);
+const totalSold = products.reduce((acc, p) => acc + (p.sold || 0), 0);
+const defaultCategoryLabels = { freefire: 'Free Fire', mlbb: 'Mobile Legends', pubg: 'PUBG' };
+const customCategoryLabels = settings.categoryLabels || {};
+const allCategoryLabels = Object.assign({}, defaultCategoryLabels, customCategoryLabels);
+const defaultCategories = ['freefire', 'mlbb', 'pubg'];
+const customCategories = settings.categories || [];
+const allCategories = [...new Set([...defaultCategories, ...customCategories])];
+const categoriesWithProducts = allCategories.filter(cat => products.some(p => p.category === cat));
+const visibleCategories = categoriesWithProducts.length > 0 ? categoriesWithProducts : defaultCategories;
+%>
+<div class="container home-page">
+
+<!-- HERO BANNER SLIDER -->
+<% if (banners && banners.length > 0) { %>
+<div class="hero-slider" id="heroSlider">
+  <div class="slider-container">
+    <% banners.forEach((banner, i) => { %>
+    <div class="hero-slide <%= i === 0 ? 'active' : '' %>">
+      <img src="<%= banner.image %>" alt="<%= banner.title || siteName %>">
+      <% if (banner.title || banner.subtitle) { %>
+      <div class="hero-overlay">
+        <% if (banner.title) { %><div class="hero-title"><%= banner.title %></div><% } %>
+        <% if (banner.subtitle) { %><div class="hero-subtitle"><%= banner.subtitle %></div><% } %>
+      </div>
+      <% } %>
+    </div>
+    <% }); %>
+    <% if (banners.length > 1) { %>
+    <button class="hero-nav prev" onclick="sliderPrev()">&#8249;</button>
+    <button class="hero-nav next" onclick="sliderNext()">&#8250;</button>
+    <div class="hero-dots">
+      <% banners.forEach((b, i) => { %><button class="hero-dot <%= i===0?'active':'' %>" onclick="goToSlide(<%= i %>)"></button><% }); %>
+    </div>
+    <% } %>
+  </div>
+</div>
+<% } %>
+
+<!-- DOWNLOAD BUTTON -->
+<div class="slider-nav-bottom">
+  <a href="https://whatsapp.com/channel/0029VbC1qQg1SWt30jW22m0W" target="_blank" class="btn-download-mod">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    DOWNLOAD MOD DISINI
+  </a>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee-bar">
+  <div class="marquee-content">
+    <% const mText = (settings.marqueeText && settings.marqueeText.trim()) ? settings.marqueeText : 'Selamat Datang di <strong>' + siteName + '</strong> &nbsp;|&nbsp; Top 1 VIP Mods Terbaik &nbsp;|&nbsp; Fast Response 24 Jam &nbsp;|&nbsp; Proses Instan'; %>
+    <span class="marquee-text"><%- mText %></span>
+    <span class="marquee-text"><%- mText %></span>
+  </div>
+</div>
+
+<!-- TRUST BADGES -->
+<div class="trust-section">
+  <div class="trust-item">
+    <div class="trust-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div>
+      <div class="trust-title">100% Aman</div>
+      <div class="trust-desc">Garansi akun aman</div>
+    </div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    </div>
+    <div>
+      <div class="trust-title">Proses Cepat</div>
+      <div class="trust-desc">Instan 0-1 menit</div>
+    </div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div>
+      <div class="trust-title">24/7 Support</div>
+      <div class="trust-desc">Fast response</div>
+    </div>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div>
+      <div class="trust-title">Trusted</div>
+      <div class="trust-desc">Ribuan+ pengguna</div>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="search-section">
+  <div class="search-input">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Cari game atau produk favoritmu..." onkeyup="filterProducts()">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">&times;</button>
+  </div>
+</div>
+
+<!-- CATEGORY TABS -->
+<div class="category-tabs" id="categoryTabs">
+  <button class="category-tab active" data-category="all" onclick="filterCategory('all')">Semua</button>
+  <% visibleCategories.forEach(cat => { %>
+  <button class="category-tab" data-category="<%= cat %>" onclick="filterCategory('<%= cat %>')">
+    <%= allCategoryLabels[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g,' ')) %>
+  </button>
+  <% }); %>
+</div>
+
+<!-- SECTION TITLE -->
+<div class="products-section-wrapper">
+  <div class="section-header">
+    <div class="section-title">Produk Populer</div>
+    <span class="section-badge"><%= totalProducts %> Item</span>
+  </div>
+  <div style="font-size:12px;color:var(--text-muted);margin-top:4px;margin-bottom:14px;">Koleksi produk pilihan terbaik khusus untuk anda</div>
+</div>
+
+<!-- PRODUCTS GRID -->
+<section class="products-grid" id="productsGrid">
+  <% visibleCategories.forEach(cat => {
+    const catProducts = products.filter(p => p.category === cat && p.status === 'active');
+    if (!catProducts.length) return;
+  %>
+  <div class="category-section" data-category="<%= cat %>">
+  <% catProducts.forEach(product => {
+    const stockCount = Array.isArray(product.keys) ? product.keys.length : 0;
+    const soldCount = product.sold || 0;
+    const isOOS = stockCount === 0;
+    const primaryPrice = getPrimaryPrice(product);
+  %>
+  <div class="product-card-new fade-in <%= isOOS ? 'product-out-of-stock' : '' %>"
+    data-category="<%= product.category %>"
+    data-name="<%= product.name.toLowerCase() %>"
+    data-product-id="<%= product.id %>"
+    onclick="handleCardClick(event,'<%= product.id %>',<%= isOOS %>)">
+    <div class="product-image-container">
+      <div class="product-badges">
+        <% if (isOOS) { %><span class="stock-badge-out">HABIS</span>
+        <% } else { %><span class="new-badge"><%= product.category ? product.category.toUpperCase().substring(0,3) : 'NEW' %></span><% } %>
+      </div>
+      <img src="<%= product.image %>" alt="<%= product.name %>" class="product-image" onerror="this.src='/images/logo-ibm.jpg'">
+    </div>
+    <div class="product-info">
+      <h3 class="product-name"><%= product.name %></h3>
+      <div class="product-stats">
+        <span class="stat-item">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <%= soldCount %> Terjual
+        </span>
+        <span class="stat-item">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+          <%= stockCount %> Stock
+        </span>
+      </div>
+      <div class="product-footer">
+        <div class="price-info">
+          <span class="price-currency">Rp</span>
+          <span class="price-value"><%= primaryPrice.price.toLocaleString('id-ID') %></span>
+          <span class="price-period">/ <%= primaryPrice.days %> Hari</span>
+        </div>
+        <button class="btn-buy <%= isOOS ? 'btn-out-of-stock' : '' %>">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <%= isOOS ? 'STOCK HABIS' : 'DOWNLOAD' %>
+        </button>
+        <a href="https://whatsapp.com/channel/0029VbC1qQg1SWt30jW22m0W" target="_blank" class="btn-tutorial-home" onclick="event.stopPropagation()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          ALL MOD + TUTORIAL
+        </a>
+      </div>
+    </div>
+  </div>
+  <% }); %>
+  </div>
+  <% }); %>
+  <% if (!products.length) { %>
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    <h3>Belum ada produk aktif</h3>
+    <p>Produk akan segera ditambahkan.</p>
+  </div>
+  <% } %>
+</section>
+
+</div>
+
+<script>
+var _sc=0,_ss=document.querySelectorAll('.hero-slide'),_sd=document.querySelectorAll('.hero-dot'),_st=null;
+function goToSlide(n){if(!_ss.length)return;_ss[_sc].classList.remove('active');if(_sd[_sc])_sd[_sc].classList.remove('active');_sc=(n+_ss.length)%_ss.length;_ss[_sc].classList.add('active');if(_sd[_sc])_sd[_sc].classList.add('active');}
+function sliderNext(){clearInterval(_st);goToSlide(_sc+1);_autoSlide();}
+function sliderPrev(){clearInterval(_st);goToSlide(_sc-1);_autoSlide();}
+function _autoSlide(){if(_ss.length>1)_st=setInterval(()=>goToSlide(_sc+1),4500);}
+_autoSlide();
+
+function handleCardClick(e,id,oos){
+  if(oos)return;
+  if(e.target.closest('.btn-tutorial-home'))return;
+  window.location.href='/buy/'+id;
+}
+function filterProducts(){
+  const v=document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.product-card-new').forEach(c=>{c.style.display=c.dataset.name.includes(v)?'':'none';});
+  document.querySelectorAll('.category-section').forEach(s=>{s.style.display=[...s.querySelectorAll('.product-card-new')].some(c=>c.style.display!=='none')?'':'none';});
+  document.getElementById('searchClear').style.display=v?'block':'none';
+}
+function clearSearch(){document.getElementById('searchInput').value='';filterProducts();}
+function filterCategory(cat){
+  document.querySelectorAll('.category-tab').forEach(t=>t.classList.toggle('active',t.dataset.category===cat));
+  if(cat==='all'){document.querySelectorAll('.category-section,.product-card-new').forEach(e=>e.style.display='');}
+  else{document.querySelectorAll('.category-section').forEach(s=>s.style.display=s.dataset.category===cat?'':'none');}
+}
+</script>

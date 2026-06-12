@@ -1,0 +1,363 @@
+<%
+const pricingOptions = Array.isArray(product.pricingOptions) && product.pricingOptions.length > 0
+  ? product.pricingOptions
+  : [
+      { days: 1, price: product.price1day || 0 },
+      { days: 3, price: product.price3day || 0 },
+      { days: 7, price: product.price7day || 0 }
+    ];
+const _keys = product.keys || [];
+const _hasUnkeyed = _keys.some(k => !k.includes(':'));
+const availableOptions = pricingOptions.filter(option => {
+  const _hasKeyed = _keys.some(k => { const p = k.split(':'); return p.length === 2 && parseInt(p[1], 10) === option.days; });
+  return _hasKeyed || _hasUnkeyed;
+});
+const defaultOption = availableOptions[0] || pricingOptions[0] || { days: 1, price: 0 };
+%>
+<div class="container buy-page">
+<div style="margin-bottom: 32px;">
+<a href="/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); transition: color .3s;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<line x1="19" y1="12" x2="5" y2="12"/>
+<polyline points="12 19 5 12 12 5"/>
+</svg>
+Kembali
+</a>
+</div>
+<div class="card buy-card">
+<div class="buy-card-hero">
+<div class="buy-card-hero-bg" style="background-image:url('<%= product.image %>')"></div>
+<img class="buy-card-hero-img" src="<%= product.image %>" alt="<%= product.name %>" onerror="this.src='/images/placeholder.jpg'">
+<span class="badge badge-active"><%= product.category.toUpperCase() %></span>
+</div>
+<div class="buy-card-content">
+<h1 class="buy-title"><%= product.name %></h1>
+<p class="buy-description"><%= product.description %></p>
+<div style="margin-bottom: 32px;">
+<h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Pilih Durasi:</h3>
+<% if (availableOptions.length === 0) { %>
+<div style="padding: 20px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 10px; text-align: center; color: #ef4444;">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:block;margin:0 auto 8px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<strong>Stok Habis</strong>
+<p style="font-size:13px;margin-top:4px;color:rgba(239,68,68,.8);">Semua durasi sedang tidak tersedia. Coba lagi nanti.</p>
+</div>
+<% } else { %>
+<div class="duration-options">
+<% availableOptions.forEach((option, index) => { %>
+<label style="cursor: pointer;">
+<input type="radio" name="duration" value="<%= option.days %>" <%= index === 0 ? 'checked' : '' %> style="display: none;">
+<div class="duration-card <%= index === 0 ? 'selected' : '' %>" data-value="<%= option.days %>">
+<p class="price">Rp <%= (option.price / 1000).toFixed(0) %>K</p>
+<p class="period"><%= option.days %> Hari</p>
+</div>
+</label>
+<% }); %>
+</div>
+<% } %>
+</div>
+<div class="voucher-section">
+<h3>Kode Voucher (Opsional):</h3>
+<div class="voucher-form">
+<input type="text" id="voucherInput" placeholder="Masukkan kode voucher" style="text-transform: uppercase;">
+<button type="button" onclick="applyVoucher()" class="btn btn-secondary">Gunakan</button>
+</div>
+<p id="voucherMessage" style="margin-top: 12px; font-size: 14px; display: none;"></p>
+</div>
+<div class="order-summary">
+<div class="row">
+<span>Subtotal</span>
+<span id="subtotalPrice">Rp <%= (defaultOption.price / 1000).toFixed(0) %>K</span>
+</div>
+<div class="row" id="discountRow" style="display: none;">
+<span class="discount">Diskon</span>
+<span class="discount" id="discountPrice">-Rp 0</span>
+</div>
+<div class="row">
+<span>Metode Pembayaran</span>
+<span id="paymentMethod">QRIS</span>
+</div>
+<div class="row">
+<span>Total</span>
+<span id="totalPrice" style="color: var(--yellow);">Rp <%= (defaultOption.price / 1000).toFixed(0) %>K</span>
+</div>
+</div>
+<form action="/buy/<%= product.id %>" method="POST" id="buyForm">
+<input type="hidden" name="duration" id="durationInput" value="<%= defaultOption.days %>">
+<input type="hidden" name="voucher" id="voucherHidden">
+<input type="hidden" name="paymentMethod" id="paymentMethodInput" value="qris">
+<div style="margin-bottom: 24px;">
+<label style="display: block; margin-bottom: 12px; font-weight: 500; color: var(--text-secondary);">Metode Pembayaran:</label>
+<div class="payment-methods">
+<div class="payment-method-btn selected" data-method="qris" onclick="selectPayment(this)" style="border: 2px solid var(--yellow); background: rgba(250,204,21,.08);">
+<img src="/images/qris.jpg" alt="QRIS" style="width: 40px; height: 40px; margin-bottom: 8px; object-fit: contain;">
+<p style="font-weight: 600; color: var(--text-primary);">QRIS</p>
+<p style="font-size: 12px; color: var(--text-secondary);">Pembayaran via QRIS</p>
+</div>
+</div>
+</div>
+<button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" <%= availableOptions.length === 0 ? 'disabled style="width:100%;opacity:.4;cursor:not-allowed;"' : '' %>>Beli Sekarang</button>
+</form>
+</div>
+</div>
+</div>
+<!-- Review form disabled for guest checkout -->
+<% if (productReviews && productReviews.length > 0) { %>
+<div class="reviews-showcase-section" style="margin-top: 32px; max-width: 800px; margin-left: auto; margin-right: auto;">
+<div class="reviews-showcase-header">
+<div class="reviews-stats-summary">
+<div class="reviews-score-big">
+<%= reviewStats?.avgRating || '0' %>
+</div>
+<div class="reviews-score-info">
+<div class="reviews-stars-display">
+<% const avgRating = parseFloat(reviewStats?.avgRating) || 0; %>
+<% for(let i = 1; i <= 5; i++) { %>
+<span class="star-display <%= i <= Math.round(avgRating) ? 'active' : '' %>">
+<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+</span>
+<% } %>
+</div>
+<span class="reviews-count-label"><%= productReviews.length %> ulasan</span>
+</div>
+</div>
+</div>
+<div class="reviews-list-elegant">
+<% productReviews.forEach((review, index) => { %>
+<div class="review-item-elegant" style="animation-delay: <%= index * 80 %>ms">
+<div class="review-item-header">
+<div class="review-user-avatar">
+<%= review.username.charAt(0).toUpperCase() %>
+<div class="review-user-avatar-glow"></div>
+</div>
+<div class="review-user-details">
+<span class="review-user-name"><%= review.username %></span>
+<div class="review-meta">
+<span class="review-verified-badge">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+Terverifikasi
+</span>
+<span class="review-date-badge"><%= new Date(review.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) %></span>
+</div>
+</div>
+<div class="review-item-stars">
+<% for(let i = 1; i <= 5; i++) { %>
+<span class="star-item <%= i <= review.rating ? 'filled' : '' %>">
+<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+</span>
+<% } %>
+</div>
+</div>
+<div class="review-item-content">
+<p class="review-comment-text"><%= review.comment %></p>
+</div>
+<div class="review-item-footer">
+<button class="review-helpful-btn" onclick="toggleHelpful(this)">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+<span>Membantu</span>
+</button>
+</div>
+</div>
+<% }); %>
+</div>
+</div>
+<% } %>
+</div>
+</div>
+<script>
+let buyRating = 0;
+let ratingPreview = 0;
+const ratingLabels = ['', 'Sangat Buruk', 'Buruk', 'Netral', 'Baik', 'Sangat Baik'];
+const pricingOptions = <%- JSON.stringify(availableOptions) %>;
+const prices = Object.fromEntries(pricingOptions.map((option) => [String(option.days), option.price]));
+let selectedDuration = '<%= defaultOption.days %>';
+let currentDiscount = 0;
+let selectedPayment = 'qris';
+
+function setBuyRating(rating) {
+  buyRating = rating;
+  updateRatingDisplay(rating);
+  const labels = ['', 'Sangat Buruk', 'Buruk', 'Netral', 'Baik', 'Sangat Baik'];
+  document.getElementById('buyRatingLabel').innerHTML = '<span class="rating-active-label">' + (labels[rating] || 'Pilih rating') + '</span>';
+}
+
+function previewRating(rating) {
+  ratingPreview = rating;
+  updateRatingDisplay(rating, true);
+  const labels = ['', 'Sangat Buruk', 'Buruk', 'Netral', 'Baik', 'Sangat Baik'];
+  document.getElementById('buyRatingLabel').innerHTML = '<span class="rating-preview-label">' + (labels[rating] || 'Klik bintang') + '</span>';
+}
+
+function clearRatingPreview() {
+  ratingPreview = 0;
+  updateRatingDisplay(buyRating);
+  if (buyRating > 0) {
+    document.getElementById('buyRatingLabel').innerHTML = '<span class="rating-active-label">' + ratingLabels[buyRating] + '</span>';
+  } else {
+    document.getElementById('buyRatingLabel').innerHTML = '<span class="rating-hint">Klik bintang untuk rating</span>';
+  }
+}
+
+function updateRatingDisplay(rating, isPreview) {
+  document.querySelectorAll('#buyStarRatingInput .rating-star-btn').forEach(star => {
+    const starValue = parseInt(star.dataset.value);
+    if (starValue <= rating) {
+      star.classList.add('active');
+    } else {
+      star.classList.remove('active');
+    }
+  });
+}
+
+function toggleHelpful(btn) {
+  btn.classList.toggle('active');
+  if (btn.classList.contains('active')) {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg><span>Membantu</span>';
+  } else {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg><span>Membantu</span>';
+  }
+}
+
+document.getElementById('buyReviewComment')?.addEventListener('input', function() {
+  document.getElementById('buyCharCount').textContent = this.value.length;
+});
+
+async function submitBuyReview(productId) {
+  if (buyRating === 0) {
+    alert('Silakan pilih rating terlebih dahulu');
+    return;
+  }
+  const comment = document.getElementById('buyReviewComment').value.trim();
+  if (!comment) {
+    alert('Silakan tulis komentar review');
+    return;
+  }
+  try {
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, rating: buyRating, comment })
+    });
+    const data = await response.json();
+    if (data.success) {
+      alert('Review berhasil dikirim! Terima kasih atas feedback-nya.');
+      location.reload();
+    } else {
+      alert(data.error || 'Gagal mengirim review');
+    }
+  } catch (error) {
+    alert('Terjadi kesalahan saat mengirim review');
+  }
+}
+
+const durationCards = document.querySelectorAll('.duration-card');
+durationCards.forEach((card) => {
+card.addEventListener('click', function() {
+const radio = this.parentElement.querySelector('input[type="radio"]');
+radio.checked = true;
+selectedDuration = radio.value;
+updateDurationCards();
+updatePrice();
+});
+});
+
+function updateDurationCards() {
+durationCards.forEach((card) => {
+if (card.dataset.value === selectedDuration) {
+card.classList.add('selected');
+} else {
+card.classList.remove('selected');
+}
+});
+}
+
+function selectPayment(el) {
+document.querySelectorAll('.payment-method-btn').forEach((btn) => {
+btn.style.borderColor = 'var(--border)';
+btn.style.background = 'rgba(250,204,21,.05)';
+});
+el.style.borderColor = 'var(--yellow)';
+el.style.background = 'rgba(250,204,21,.1)';
+selectedPayment = el.dataset.method;
+document.getElementById('paymentMethodInput').value = selectedPayment;
+document.getElementById('paymentMethod').textContent = selectedPayment === 'qris' ? 'QRIS' : 'Manual / Langsung';
+}
+
+function updatePrice() {
+const price = prices[selectedDuration] || 0;
+const discount = currentDiscount;
+const total = price - discount;
+document.getElementById('subtotalPrice').textContent = 'Rp ' + (price / 1000).toFixed(0) + 'K';
+document.getElementById('totalPrice').textContent = 'Rp ' + (total / 1000).toFixed(0) + 'K';
+if (discount > 0) {
+document.getElementById('discountRow').style.display = 'flex';
+document.getElementById('discountPrice').textContent = '-Rp ' + (discount / 1000).toFixed(0) + 'K';
+} else {
+document.getElementById('discountRow').style.display = 'none';
+}
+document.getElementById('durationInput').value = selectedDuration;
+}
+
+document.querySelectorAll('input[name="duration"]').forEach((radio) => {
+radio.addEventListener('change', function() {
+selectedDuration = this.value;
+updateDurationCards();
+updatePrice();
+});
+});
+
+function applyVoucher() {
+const code = document.getElementById('voucherInput').value.toUpperCase();
+const message = document.getElementById('voucherMessage');
+if (!code) {
+message.textContent = 'Masukkan kode voucher';
+message.style.color = '#dc2626';
+message.style.display = 'block';
+return;
+}
+fetch('/api/vouchers/validate/' + code)
+.then((res) => res.json())
+.then((data) => {
+if (data.valid) {
+const price = prices[selectedDuration] || 0;
+const limitVal = data.limitValue || 0;
+const limitOk = data.limitType === 'maximum' ? price <= limitVal : price >= limitVal;
+if (!limitOk) {
+currentDiscount = 0;
+const limitLabel = data.limitType === 'maximum' ? 'maksimum' : 'minimum';
+message.textContent = 'Voucher tidak valid: pembelian ' + limitLabel + ' Rp ' + limitVal.toLocaleString('id-ID');
+message.style.color = '#dc2626';
+updatePrice();
+message.style.display = 'block';
+return;
+}
+if (data.discountType === 'nominal') {
+currentDiscount = Math.min(data.discountValue, price);
+message.textContent = 'Voucher aktif! Potongan Rp ' + data.discountValue.toLocaleString('id-ID');
+} else {
+currentDiscount = Math.round(price * (data.discountValue / 100));
+message.textContent = 'Voucher aktif! Diskon ' + data.discountValue + '%';
+}
+message.style.color = '#16a34a';
+updatePrice();
+} else {
+currentDiscount = 0;
+message.textContent = 'Voucher tidak valid atau sudah kadaluarsa';
+message.style.color = '#dc2626';
+updatePrice();
+}
+message.style.display = 'block';
+})
+.catch(() => {
+currentDiscount = 0;
+message.textContent = 'Voucher tidak valid atau sudah kadaluarsa';
+message.style.color = '#dc2626';
+message.style.display = 'block';
+updatePrice();
+});
+}
+
+document.getElementById('buyForm').addEventListener('submit', function() {
+document.getElementById('voucherHidden').value = document.getElementById('voucherInput').value;
+document.getElementById('paymentMethodInput').value = selectedPayment;
+});
+</script>

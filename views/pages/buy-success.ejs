@@ -1,0 +1,572 @@
+<div class="container buy-success-page">
+<div style="margin-bottom: 20px;" id="backLink">
+<a href="/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); transition: color .3s;">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<line x1="19" y1="12" x2="5" y2="12"/>
+<polyline points="12 19 5 12 12 5"/>
+</svg>
+Kembali ke Beranda
+</a>
+</div>
+<div class="card buy-success-card">
+<% if (typeof pendingPayment !== 'undefined' && pendingPayment) { %>
+<div class="success-icon success-icon-pending">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2">
+<circle cx="12" cy="12" r="10"/>
+<line x1="12" y1="8" x2="12" y2="12"/>
+<line x1="12" y1="16" x2="12.01" y2="16"/>
+</svg>
+</div>
+<h1 class="buy-success-title">Menunggu Pembayaran</h1>
+<p class="buy-success-subtitle">Selesaikan pembayaran untuk mendapatkan key Anda.</p>
+<div class="order-info-card">
+<% if (product && product.image) { %>
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+<img src="<%= product.image %>" alt="<%= product.name %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+<div>
+<div style="font-weight: 600; color: var(--text-primary);"><%= product.name %></div>
+<div style="font-size: 12px; color: var(--text-secondary);"><%= transaction.duration %></div>
+</div>
+</div>
+<% } %>
+<div class="order-info-row">
+<span>Produk</span>
+<span><%= transaction.productName %></span>
+</div>
+<div class="order-info-row">
+<span>Durasi</span>
+<span><%= transaction.duration %></span>
+</div>
+<div class="order-info-row order-info-row-highlight">
+<span>Total Bayar</span>
+<span class="text-yellow">Rp <%= totalPayment ? totalPayment.toLocaleString('id-ID') : (transaction.price / 1000).toFixed(0) + 'K' %></span>
+</div>
+<% if (transaction.invoiceId) { %>
+<div class="order-info-row order-info-row-small">
+<span>Invoice ID</span>
+<code><%= transaction.invoiceId %></code>
+</div>
+<% } %>
+<div class="order-info-row order-info-row-small">
+<span>Order ID</span>
+<code><%= transaction.paymentRef %></code>
+</div>
+</div>
+<% if (typeof paymentQr !== 'undefined' && paymentQr) { %>
+<div class="qris-section" id="qrisSection">
+<p class="qris-label">Scan QRIS di bawah ini:</p>
+<div class="qris-display">
+<img src="/qr/<%= encodeURIComponent(paymentQr) %>" alt="QRIS Payment" style="width: 180px; height: 180px; border-radius: 8px;" id="qrisImage" />
+</div>
+<div id="qrisExpired" style="margin-top: 12px; padding: 8px 16px; background: rgba(250,204,21,0.1); border: 1px solid var(--yellow); border-radius: 8px; text-align: center;">
+<p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px 0;">Berlaku selama</p>
+<p id="countdownTimer" style="font-size: 18px; font-weight: 700; color: var(--yellow); margin: 0;">05:00</p>
+</div>
+<p class="qris-hint">Atau salin kode QRIS:</p>
+<div class="qris-code-wrapper">
+<code class="qris-code"><%= paymentQr %></code>
+<button onclick="copyQrisCode('<%= paymentQr %>')" class="btn-copy-qris">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>
+</button>
+</div>
+</div>
+<% } %>
+<div id="paymentStatus" class="key-section" style="display: none;">
+<p class="key-label">Key akan muncul setelah pembayaran berhasil</p>
+<p id="keyPlaceholder" class="key-placeholder">Menunggu konfirmasi...</p>
+</div>
+<div id="successKeySection" class="key-display" style="display: none;">
+<div class="key-output-wrapper">
+<code id="keyOutputSuccess" class="key-output"></code>
+<button onclick="copyKeySuccess()" id="copyBtnSuccess" class="btn-copy-key">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>
+</button>
+</div>
+</div>
+<div id="pendingActions" class="success-actions">
+<button onclick="checkPaymentStatus('<%= transaction.paymentRef %>')" id="checkPaymentBtn" class="btn btn-check">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<polyline points="23 4 23 10 17 10"/>
+<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+</svg>
+<span>Cek Pembayaran</span>
+</button>
+<button onclick="cancelPayment('<%= transaction.paymentRef %>')" id="cancelPaymentBtn" class="btn btn-cancel">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<line x1="18" y1="6" x2="6" y2="18"/>
+<line x1="6" y1="6" x2="18" y2="18"/>
+</svg>
+<span>Batalkan</span>
+</button>
+</div>
+<div id="successActions" class="success-actions" style="display: none;">
+<button onclick="copyKeySuccess()" id="copyBtnMainSuccess" class="btn btn-primary">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>
+Salin Key
+</button>
+<a href="/" class="btn btn-secondary">
+Lihat Lainnya
+</a>
+</div>
+<% } else { %>
+<div class="purchase-success">
+<svg viewBox="0 0 24 24" fill="none" stroke="#000">
+<polyline points="20 6 9 17 4 12"/>
+</svg>
+</div>
+<h1 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">Pembelian Berhasil!</h1>
+<p style="color: var(--text-secondary); margin-bottom: 32px;">Berikut adalah key akun Anda. Simpan dengan baik!</p>
+<div class="key-display">
+<div class="key-output-wrapper">
+<code id="keyOutput" class="key-output"><%= transaction.key %></code>
+<button onclick="copyKey()" id="copyBtn" class="btn-copy-key">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>
+</button>
+</div>
+</div>
+<div style="background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 32px; text-align: left;">
+<% if (transaction.invoiceId) { %>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span style="color: var(--text-secondary);">Invoice ID</span>
+<span style="font-size: 12px; font-family: monospace;"><%= transaction.invoiceId %></span>
+</div>
+<% } %>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span style="color: var(--text-secondary);">Produk</span>
+<span><%= transaction.productName %></span>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span style="color: var(--text-secondary);">Durasi</span>
+<span><%= transaction.duration %></span>
+</div>
+<% if (transaction.discount > 0) { %>
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+<span style="color: var(--text-secondary);">Diskon</span>
+<span style="color: var(--yellow);">-Rp <%= (transaction.discount / 1000).toFixed(0) %>K</span>
+</div>
+<% } %>
+<div style="display: flex; justify-content: space-between;">
+<span style="color: var(--text-secondary);">Total</span>
+<span style="font-weight: 700; color: var(--yellow);">Rp <%= (transaction.price / 1000).toFixed(0) %>K</span>
+</div>
+</div>
+<% } %>
+<% if (typeof pendingPayment === 'undefined' || !pendingPayment) { %>
+<div class="success-actions">
+<button onclick="copyKey()" id="copyBtnMain" class="btn btn-primary">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg>
+Salin Key
+</button>
+<a href="/" class="btn btn-secondary">
+Lihat Lainnya
+</a>
+</div>
+<% } %>
+</div>
+</div>
+<style>
+.qris-code-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+.qris-code-wrapper code {
+  flex: 1;
+  word-break: break-all;
+  font-size: 11px;
+  padding: 0;
+  background: none;
+}
+.btn-copy-qris {
+  background: var(--yellow);
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .2s;
+}
+.btn-copy-qris:hover { opacity: 0.8; }
+.key-output-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.key-output {
+  flex: 1;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 !important;
+  background: none !important;
+}
+.btn-copy-key {
+  background: var(--yellow);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .2s;
+  flex-shrink: 0;
+}
+.btn-copy-key:hover { opacity: 0.8; }
+.order-info-row-small {
+  font-size: 12px;
+}
+.order-info-row-small code {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: rgba(250, 204, 21, 0.1);
+  border-radius: 4px;
+  color: var(--yellow);
+}
+</style>
+<% if (typeof pendingPayment !== 'undefined' && pendingPayment) { %>
+<script>
+var qrisActive = true;
+var paymentChecked = false;
+var expiredTime = new Date(Date.now() + 5 * 60000).getTime();
+var currentInvoiceId = '<%= transaction.invoiceId || '' %>';
+var currentPaymentRef = '<%= transaction.paymentRef %>';
+var currentKey = '<%= transaction.key %>';
+
+function saveToLocalHistory() {
+  try {
+    var history = JSON.parse(localStorage.getItem('invoiceHistory') || '[]');
+    var exists = history.some(function(item) { return item.paymentRef === currentPaymentRef; });
+    if (!exists && currentInvoiceId) {
+      history.unshift({
+        invoiceId: currentInvoiceId,
+        paymentRef: currentPaymentRef,
+        productName: '<%= transaction.productName %>',
+        duration: '<%= transaction.duration %>',
+        price: '<%= transaction.price %>',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      if (history.length > 20) {
+        history = history.slice(0, 20);
+      }
+      localStorage.setItem('invoiceHistory', JSON.stringify(history));
+    }
+  } catch (e) {
+    console.error('[LOCAL] Failed to save history:', e);
+  }
+}
+
+function updateLocalHistoryStatus(key, status) {
+  try {
+    var history = JSON.parse(localStorage.getItem('invoiceHistory') || '[]');
+    history = history.map(function(item) {
+      if (item.paymentRef === currentPaymentRef) {
+        return {
+          invoiceId: currentInvoiceId || item.invoiceId,
+          paymentRef: currentPaymentRef,
+          productName: item.productName,
+          duration: item.duration,
+          price: item.price,
+          key: key || item.key,
+          status: status,
+          paidAt: status === 'success' ? new Date().toISOString() : item.paidAt,
+          createdAt: item.createdAt
+        };
+      }
+      return item;
+    });
+    localStorage.setItem('invoiceHistory', JSON.stringify(history));
+  } catch (e) {
+    console.error('[LOCAL] Failed to update history:', e);
+  }
+}
+
+saveToLocalHistory();
+
+function updateCountdown() {
+  var now = Date.now();
+  var diff = expiredTime - now;
+  if (diff <= 0) {
+    document.getElementById('countdownTimer').textContent = '00:00';
+    document.getElementById('countdownTimer').style.color = '#dc2626';
+    if (qrisActive && !paymentChecked) {
+      qrisActive = false;
+      showToast('QRIS telah kadaluarsa', 'error');
+      updateLocalHistoryStatus(null, 'expired');
+    }
+    return;
+  }
+  var minutes = Math.floor(diff / 60000);
+  var seconds = Math.floor((diff % 60000) / 1000);
+  document.getElementById('countdownTimer').textContent =
+    (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+}
+
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+document.addEventListener('click', function(e) {
+  if (!qrisActive) return;
+  var target = e.target || e.srcElement;
+  var tagName = target.tagName.toLowerCase();
+  if (tagName === 'a' || tagName === 'button') {
+    var id = target.id || '';
+    var isAllowed = false;
+    var allowedIds = ['cancelPaymentBtn', 'checkPaymentBtn'];
+    for (var i = 0; i < allowedIds.length; i++) {
+      if (id === allowedIds[i] || target.closest('#' + allowedIds[i])) {
+        isAllowed = true;
+        break;
+      }
+    }
+    if (!isAllowed) {
+      e.preventDefault();
+      showToast('Selesaikan pembayaran terlebih dahulu', 'error');
+    }
+  }
+});
+
+function downloadQris() {
+  if (!qrisActive) return;
+  var qrisImage = document.getElementById('qrisImage');
+  if (qrisImage) {
+    var link = document.createElement('a');
+    link.href = qrisImage.src;
+    link.download = 'qris_payment.png';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
+function copyKeySuccess() {
+  var key = document.getElementById('keyOutputSuccess')?.textContent || '<%= transaction.key %>';
+  navigator.clipboard.writeText(key).then(function() {
+    var btn = document.getElementById('copyBtnSuccess') || document.getElementById('copyBtnMainSuccess');
+    if (btn) {
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Tersalin!';
+      setTimeout(function() {
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Salin Key';
+      }, 2000);
+    }
+  }).catch(function() {
+    showToast('Gagal menyalin key', 'error');
+  });
+}
+
+function checkPaymentStatus(refId) {
+  if (!qrisActive) {
+    showToast('QRIS telah kadaluarsa. Silakan buat pesanan baru.', 'error');
+    return;
+  }
+  if (paymentChecked) return;
+  var btn = document.getElementById('checkPaymentBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Mengecek...</span>';
+
+  console.log('[PAYMENT CHECK] Sending request for refId:', refId);
+
+  fetch('/check-payment/' + refId, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(function(response) {
+      console.log('[PAYMENT CHECK] Response status:', response.status, response.ok);
+      if (!response || !response.ok) {
+        throw new Error('Server tidak merespon dengan benar (status: ' + response.status + ')');
+      }
+      return response.json();
+    })
+    .then(function(data) {
+      console.log('[PAYMENT CHECK] Response received:', JSON.stringify(data));
+
+      if (data.success && (data.status === 'completed' || data.status === 'success')) {
+        paymentChecked = true;
+        qrisActive = false;
+
+        if (data.invoiceId) {
+          currentInvoiceId = data.invoiceId;
+        }
+
+        document.getElementById('keyPlaceholder').innerHTML = '<code style="color: var(--yellow); font-size: 16px;">' + data.key + '</code>';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Berhasil!</span>';
+        btn.style.background = 'linear-gradient(135deg,#eab308,#ca8a04)';
+
+        var qrisSection = document.getElementById('qrisSection');
+        var paymentStatus = document.getElementById('paymentStatus');
+        var successKeySection = document.getElementById('successKeySection');
+        var pendingActions = document.getElementById('pendingActions');
+        var successActions = document.getElementById('successActions');
+
+        if (qrisSection) qrisSection.style.display = 'none';
+        if (paymentStatus) paymentStatus.style.display = 'none';
+        if (successKeySection) {
+          successKeySection.style.display = '';
+          document.getElementById('keyOutputSuccess').textContent = data.key;
+        }
+        if (pendingActions) pendingActions.style.display = 'none';
+        if (successActions) successActions.style.display = '';
+
+        updateLocalHistoryStatus(data.key, 'success');
+        showToast('Pembayaran berhasil! Key: ' + data.key, 'success');
+      } else if (data.status === 'expired') {
+        qrisActive = false;
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Kadaluarsa</span>';
+        btn.disabled = true;
+        updateLocalHistoryStatus(null, 'expired');
+        showToast(data.message || 'Pembayaran telah kadaluarsa', 'error');
+      } else if (data.status === 'not_found') {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Tidak Ditemukan</span>';
+        btn.disabled = true;
+        showToast(data.message || 'Transaksi tidak ditemukan', 'error');
+      } else if (data.status === 'not_configured') {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Konfirmasi Manual</span>';
+        btn.disabled = true;
+        showToast(data.message || 'Hubungi admin untuk konfirmasi manual', 'error');
+      } else if (data.status === 'rate_limited') {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Cek Pembayaran</span>';
+        btn.disabled = false;
+        showToast(data.message || 'Tunggu sebentar sebelum cek lagi.', 'error');
+      } else if (data.status === 'api_error') {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Cek Lagi</span>';
+        btn.disabled = false;
+        showToast(data.message || 'Gagal terhubung ke server. Silakan coba lagi.', 'error');
+      } else {
+        var errorMessage = data.message || 'Pembayaran masih pending. Silakan selesaikan pembayaran.';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Cek Lagi</span>';
+        btn.disabled = false;
+        showToast(errorMessage, 'error');
+      }
+    })
+    .catch(function(err) {
+      console.error('[PAYMENT CHECK] Fetch error:', err);
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Cek Lagi</span>';
+      btn.disabled = false;
+      showToast('Gagal mengecek pembayaran. Pastikan koneksi internet stabil dan coba lagi.', 'error');
+    });
+}
+
+function cancelPayment(refId) {
+  if (!confirm('Yakin ingin membatalkan pembayaran?')) return;
+  var cancelBtn = document.getElementById('cancelPaymentBtn');
+  cancelBtn.disabled = true;
+  cancelBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Membatalkan...</span>';
+
+  fetch('/cancel-payment/' + refId, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        qrisActive = false;
+        updateLocalHistoryStatus(null, 'cancelled');
+        showToast('Pembayaran berhasil dibatalkan', 'error');
+        setTimeout(function() {
+          window.location.href = '/';
+        }, 1500);
+      } else {
+        cancelBtn.disabled = false;
+        cancelBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Batalkan</span>';
+        showToast(data.message || 'Gagal membatalkan', 'error');
+      }
+    })
+    .catch(function() {
+      cancelBtn.disabled = false;
+      cancelBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Batalkan</span>';
+      showToast('Gagal membatalkan pembayaran', 'error');
+    });
+}
+
+function copyQrisCode(code) {
+  navigator.clipboard.writeText(code).then(function() {
+    showToast('Kode QRIS berhasil disalin', 'success');
+  }).catch(function() {
+    showToast('Gagal menyalin kode', 'error');
+  });
+}
+</script>
+<% } else { %>
+<script>
+var currentInvoiceId = '<%= transaction.invoiceId || '' %>';
+var currentKey = '<%= transaction.key %>';
+var currentPaymentRef = '';
+var currentProductName = '<%= transaction.productName %>';
+var currentDuration = '<%= transaction.duration %>';
+var currentPrice = '<%= transaction.price %>';
+
+function saveToLocalHistory() {
+  try {
+    var history = JSON.parse(localStorage.getItem('invoiceHistory') || '[]');
+    var exists = history.some(function(item) { return item.invoiceId === currentInvoiceId; });
+    if (!exists && currentInvoiceId) {
+      history.unshift({
+        invoiceId: currentInvoiceId,
+        paymentRef: currentPaymentRef,
+        productName: currentProductName,
+        duration: currentDuration,
+        price: currentPrice,
+        key: currentKey,
+        status: 'success',
+        paidAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+      if (history.length > 20) {
+        history = history.slice(0, 20);
+      }
+      localStorage.setItem('invoiceHistory', JSON.stringify(history));
+    }
+  } catch (e) {
+    console.error('[LOCAL] Failed to save history:', e);
+  }
+}
+
+saveToLocalHistory();
+
+function copyKey() {
+  var key = '<%= transaction.key %>';
+  navigator.clipboard.writeText(key).then(function() {
+    var btn = document.getElementById('copyBtn') || document.getElementById('copyBtnMain');
+    if (btn) {
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Tersalin!';
+      setTimeout(function() {
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Salin Key';
+      }, 2000);
+    }
+  }).catch(function() {
+    showToast('Gagal menyalin key', 'error');
+  });
+}
+</script>
+<% } %>
